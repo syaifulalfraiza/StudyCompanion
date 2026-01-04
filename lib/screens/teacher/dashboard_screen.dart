@@ -14,7 +14,10 @@ class TeacherDashboardScreen extends StatelessWidget {
         child: Center(
           child: Semantics(
             label: 'Teacher dashboard placeholder',
-            child: Text('Teacher dashboard (placeholder)', style: TextStyle(fontSize: 16)),
+            child: Text(
+              'Teacher dashboard (placeholder)',
+              style: TextStyle(fontSize: 16),
+            ),
           ),
         ),
       ),

@@ -6,5 +6,10 @@ class User {
   final String name;
   final UserRole role;
 
-  User({required this.id, required this.username, required this.name, required this.role});
+  User({
+    required this.id,
+    required this.username,
+    required this.name,
+    required this.role,
+  });
 }

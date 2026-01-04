@@ -5,5 +5,9 @@ class LoginRequest {
   final String password;
   final UserRole role;
 
-  LoginRequest({required this.username, required this.password, required this.role});
+  LoginRequest({
+    required this.username,
+    required this.password,
+    required this.role,
+  });
 }

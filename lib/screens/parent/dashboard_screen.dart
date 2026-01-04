@@ -14,7 +14,10 @@ class ParentDashboardScreen extends StatelessWidget {
         child: Center(
           child: Semantics(
             label: 'Parent dashboard placeholder',
-            child: Text('Parent dashboard (placeholder)', style: TextStyle(fontSize: 16)),
+            child: Text(
+              'Parent dashboard (placeholder)',
+              style: TextStyle(fontSize: 16),
+            ),
           ),
         ),
       ),

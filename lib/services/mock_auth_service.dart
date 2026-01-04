@@ -4,9 +4,24 @@ import '../models/login_request.dart';
 
 class MockAuthService {
   static final List<User> _sampleUsers = [
-    User(id: 's1', username: 'student1', name: 'Ali Student', role: UserRole.student),
-    User(id: 't1', username: 'teacher1', name: 'Mr. Tan', role: UserRole.teacher),
-    User(id: 'p1', username: 'parent1', name: 'Mrs. Ong', role: UserRole.parent),
+    User(
+      id: 's1',
+      username: 'student1',
+      name: 'Ali Student',
+      role: UserRole.student,
+    ),
+    User(
+      id: 't1',
+      username: 'teacher1',
+      name: 'Mr. Tan',
+      role: UserRole.teacher,
+    ),
+    User(
+      id: 'p1',
+      username: 'parent1',
+      name: 'Mrs. Ong',
+      role: UserRole.parent,
+    ),
     User(id: 'a1', username: 'admin', name: 'Admin', role: UserRole.admin),
   ];
 
@@ -25,7 +40,8 @@ class MockAuthService {
 
     User? found;
     for (final u in _sampleUsers) {
-      if (u.username.toLowerCase() == req.username.toLowerCase() && u.role == req.role) {
+      if (u.username.toLowerCase() == req.username.toLowerCase() &&
+          u.role == req.role) {
         found = u;
         break;
       }

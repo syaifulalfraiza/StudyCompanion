@@ -4,7 +4,8 @@ class ErrorBanner extends StatelessWidget {
   final String message;
   final VoidCallback? onClose;
 
-  const ErrorBanner({Key? key, required this.message, this.onClose}) : super(key: key);
+  const ErrorBanner({Key? key, required this.message, this.onClose})
+    : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -19,7 +20,12 @@ class ErrorBanner extends StatelessWidget {
           children: [
             const Icon(Icons.error, color: Colors.white),
             const SizedBox(width: 8),
-            Expanded(child: Text(message, style: const TextStyle(color: Colors.white, fontSize: 14))),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(color: Colors.white, fontSize: 14),
+              ),
+            ),
             if (onClose != null)
               IconButton(
                 icon: const Icon(Icons.close, color: Colors.white),

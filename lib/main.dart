@@ -29,8 +29,10 @@ class StudyCompanionApp extends StatelessWidget {
           LoginScreen.routeName: (_) => const LoginScreen(),
           ForgotPasswordScreen.routeName: (_) => const ForgotPasswordScreen(),
           RegisterScreen.routeName: (_) => const RegisterScreen(),
-          StudentDashboardScreen.routeName: (_) => const StudentDashboardScreen(),
-          TeacherDashboardScreen.routeName: (_) => const TeacherDashboardScreen(),
+          StudentDashboardScreen.routeName: (_) =>
+              const StudentDashboardScreen(),
+          TeacherDashboardScreen.routeName: (_) =>
+              const TeacherDashboardScreen(),
           ParentDashboardScreen.routeName: (_) => const ParentDashboardScreen(),
           AdminDashboardScreen.routeName: (_) => const AdminDashboardScreen(),
         },

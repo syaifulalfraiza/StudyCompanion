@@ -6,7 +6,12 @@ class RoleChip extends StatelessWidget {
   final bool selected;
   final VoidCallback? onTap;
 
-  const RoleChip({Key? key, required this.label, this.selected = false, this.onTap}) : super(key: key);
+  const RoleChip({
+    Key? key,
+    required this.label,
+    this.selected = false,
+    this.onTap,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {

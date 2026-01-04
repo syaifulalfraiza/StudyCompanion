@@ -14,7 +14,10 @@ class RegisterScreen extends StatelessWidget {
         child: Center(
           child: Semantics(
             label: 'Registration placeholder',
-            child: Text('Registration is a placeholder in UI-only phase.', style: TextStyle(fontSize: 16)),
+            child: Text(
+              'Registration is a placeholder in UI-only phase.',
+              style: TextStyle(fontSize: 16),
+            ),
           ),
         ),
       ),

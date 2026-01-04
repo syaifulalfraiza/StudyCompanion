@@ -14,7 +14,10 @@ class AdminDashboardScreen extends StatelessWidget {
         child: Center(
           child: Semantics(
             label: 'Admin dashboard placeholder',
-            child: Text('Admin dashboard (placeholder)', style: TextStyle(fontSize: 16)),
+            child: Text(
+              'Admin dashboard (placeholder)',
+              style: TextStyle(fontSize: 16),
+            ),
           ),
         ),
       ),
