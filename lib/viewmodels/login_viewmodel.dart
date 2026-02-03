@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:studycompanion_app/views/home_screen.dart';
+import 'package:studycompanion_app/views/student_dashboard.dart';
+import 'package:studycompanion_app/views/teacher_dashboard.dart';
+import 'package:studycompanion_app/views/parent_dashboard.dart';
+import 'package:studycompanion_app/views/admin_dashboard.dart';
+import 'package:studycompanion_app/core/user_session.dart';
 
 /// A self-contained login screen widget that mirrors the provided HTML layout.
 /// Place this file in `lib/viewmodels/login_viewmodel.dart` and use
@@ -348,10 +352,46 @@ class _LoginViewModelState extends State<LoginViewModel> {
                                 ),
                                 onPressed: () {
                                   // Replace with your sign-in logic
+                                  final selectedRole =
+                                      _roles[_selectedRoleIndex];
+                                  // ✅ STORE USER GLOBALLY (ADD HERE)
+                                  UserSession.name =
+                                      _emailController.text; // temp name
+                                  UserSession.email = _emailController.text;
+                                  UserSession.role = selectedRole;
+
+                                  Widget destinationScreen;
+
+                                  switch (selectedRole) {
+                                    case 'Student':
+                                      destinationScreen =
+                                          const StudentDashboard();
+                                      break;
+
+                                    case 'Teacher':
+                                      destinationScreen =
+                                          const TeacherDashboard();
+                                      break;
+
+                                    case 'Parent':
+                                      destinationScreen =
+                                          const ParentDashboard();
+                                      break;
+
+                                    case 'Admin':
+                                      destinationScreen =
+                                          const AdminDashboard();
+                                      break;
+
+                                    default:
+                                      destinationScreen =
+                                          const StudentDashboard();
+                                  }
+
                                   Navigator.pushReplacement(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (_) => const HomeScreen(),
+                                      builder: (_) => destinationScreen,
                                     ),
                                   );
                                 },
