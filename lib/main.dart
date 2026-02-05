@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:studycompanion_app/viewmodels/login_viewmodel.dart';
 import 'package:studycompanion_app/views/parent_dashboard.dart';
+import 'package:studycompanion_app/services/teacher_store.dart';
 
 void main() {
   runApp(const MyApp());
@@ -12,7 +13,10 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    final store = TeacherStore();
+    return TeacherProvider(
+      notifier: store,
+      child: MaterialApp(
       routes: {
         '/': (context) => const LoginViewModel(),
         '/parentDashboard': (context) => const ParentDashboard(),
@@ -39,6 +43,7 @@ class MyApp extends StatelessWidget {
       ),
       //home: const MyHomePage(title: 'Flutter Demo Home Page'),
       //home: const LoginViewModel(),
+    ),
     );
   }
 }
