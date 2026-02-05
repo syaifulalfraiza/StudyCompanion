@@ -31,7 +31,7 @@ class TeacherDashboard extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        "Welcome Back\nMrs. Smith",
+                        "Welcome Back\nCikgu Farah",
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 20,
