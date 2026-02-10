@@ -9,7 +9,7 @@ import 'package:studycompanion_app/core/user_session.dart';
 /// Place this file in `lib/viewmodels/login_viewmodel.dart` and use
 /// `LoginViewModel()` as a normal Flutter page/widget.
 class LoginViewModel extends StatefulWidget {
-  const LoginViewModel({Key? key}) : super(key: key);
+  const LoginViewModel({super.key});
 
   @override
   State<LoginViewModel> createState() => _LoginViewModelState();
@@ -19,6 +19,7 @@ class _LoginViewModelState extends State<LoginViewModel> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  static const String _demoPassword = 'password123';
 
   final List<String> _roles = ['Student', 'Parent', 'Teacher', 'Admin'];
   int _selectedRoleIndex = 0;
@@ -351,6 +352,27 @@ class _LoginViewModelState extends State<LoginViewModel> {
                                   elevation: 8,
                                 ),
                                 onPressed: () {
+                                  final email = _emailController.text.trim();
+                                  final password = _passwordController.text;
+
+                                  if (email.isEmpty || password.isEmpty) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Email and password are required.'),
+                                      ),
+                                    );
+                                    return;
+                                  }
+
+                                  if (password != _demoPassword) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Incorrect password.'),
+                                      ),
+                                    );
+                                    return;
+                                  }
+
                                   // Replace with your sign-in logic
                                   final selectedRole =
                                       _roles[_selectedRoleIndex];

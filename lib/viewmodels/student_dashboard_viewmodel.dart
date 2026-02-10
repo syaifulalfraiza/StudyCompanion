@@ -58,6 +58,37 @@ class StudentDashboardViewModel extends ChangeNotifier {
     }
   }
 
+  // Add a new task
+  void addTask({
+    required String title,
+    required String dueDate,
+    required String subject,
+  }) {
+    final newTask = Task(
+      id: DateTime.now().microsecondsSinceEpoch.toString(),
+      title: title,
+      dueDate: dueDate,
+      subject: subject,
+    );
+    _tasks.insert(0, newTask);
+    notifyListeners();
+  }
+
+  // Update an existing task
+  void updateTask(Task updatedTask) {
+    final index = _tasks.indexWhere((task) => task.id == updatedTask.id);
+    if (index != -1) {
+      _tasks[index] = updatedTask;
+      notifyListeners();
+    }
+  }
+
+  // Delete a task
+  void deleteTask(String taskId) {
+    _tasks.removeWhere((task) => task.id == taskId);
+    notifyListeners();
+  }
+
   // Get completed tasks count
   int get completedTasksCount => _tasks.where((task) => task.isCompleted).length;
 

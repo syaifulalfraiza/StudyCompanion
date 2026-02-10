@@ -86,7 +86,14 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
               itemCount: viewModel.sortedAnnouncements.length,
               itemBuilder: (context, index) {
                 final announcement = viewModel.sortedAnnouncements[index];
-                return AnnouncementCard(announcement: announcement);
+                final isRead = viewModel.isRead(announcement.id);
+                return AnnouncementCard(
+                  announcement: announcement,
+                  isRead: isRead,
+                  onTap: () {
+                    viewModel.markAsRead(announcement.id);
+                  },
+                );
               },
             ),
           );
@@ -99,19 +106,25 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
 /// Announcement card widget
 class AnnouncementCard extends StatelessWidget {
   final AnnouncementModel announcement;
+  final bool isRead;
+  final VoidCallback onTap;
 
   const AnnouncementCard({
     Key? key,
     required this.announcement,
+    required this.isRead,
+    required this.onTap,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8),
-      elevation: 2,
+      elevation: isRead ? 0 : 2,
+      color: isRead ? Colors.white : Colors.blue[50],
       child: InkWell(
         onTap: () {
+          onTap();
           _showAnnouncementDetail(context);
         },
         child: Padding(
@@ -155,22 +168,36 @@ class AnnouncementCard extends StatelessWidget {
                       color: Colors.grey[600],
                     ),
                   ),
-                  if (announcement.isPublished)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.green[100],
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Text(
-                        'Published',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.green,
-                          fontWeight: FontWeight.bold,
+                  Row(
+                    children: [
+                      if (!isRead)
+                        Container(
+                          width: 8,
+                          height: 8,
+                          margin: const EdgeInsets.only(right: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.blue[800],
+                            shape: BoxShape.circle,
+                          ),
                         ),
-                      ),
-                    ),
+                      if (announcement.isPublished)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.green[100],
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Text(
+                            'Published',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.green,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                 ],
               ),
             ],

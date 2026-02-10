@@ -4,6 +4,7 @@ import 'package:studycompanion_app/services/announcement_service.dart';
 
 class AnnouncementViewModel extends ChangeNotifier {
   List<AnnouncementModel> _announcements = [];
+  final Set<String> _readAnnouncementIds = {};
   bool _isLoading = false;
   String? _error;
 
@@ -15,6 +16,8 @@ class AnnouncementViewModel extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
   int get announcementCount => _announcements.length;
+  int get unreadCount =>
+      _announcements.where((a) => !_readAnnouncementIds.contains(a.id)).length;
 
   /// Initialize announcements from service
   Future<void> _initializeAnnouncements() async {
@@ -58,6 +61,18 @@ class AnnouncementViewModel extends ChangeNotifier {
     } catch (e) {
       return null;
     }
+  }
+
+  /// Mark announcement as read (local only)
+  void markAsRead(String announcementId) {
+    if (_readAnnouncementIds.add(announcementId)) {
+      notifyListeners();
+    }
+  }
+
+  /// Check if announcement is read
+  bool isRead(String announcementId) {
+    return _readAnnouncementIds.contains(announcementId);
   }
 
   /// Get recent announcements (last 5)

@@ -28,11 +28,19 @@ class NotificationViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
+      final previouslyReadIds = _notifications
+          .where((n) => n.isRead)
+          .map((n) => n.id)
+          .toSet();
       final data = _isStudent
           ? await NotificationService.getStudentNotifications(_userId)
           : await NotificationService.getParentNotifications(_userId);
 
-      _notifications = data;
+      _notifications = data
+          .map((n) => previouslyReadIds.contains(n.id)
+              ? n.copyWith(isRead: true)
+              : n)
+          .toList();
       _unreadCount = _notifications.where((n) => !n.isRead).length;
       _error = null;
     } catch (e) {
@@ -77,8 +85,11 @@ class NotificationViewModel extends ChangeNotifier {
       await NotificationService.markNotificationAsRead(notificationId);
       final index = _notifications.indexWhere((n) => n.id == notificationId);
       if (index != -1) {
+        final wasUnread = !_notifications[index].isRead;
         _notifications[index] = _notifications[index].copyWith(isRead: true);
-        _unreadCount--;
+        if (wasUnread && _unreadCount > 0) {
+          _unreadCount--;
+        }
         notifyListeners();
       }
     } catch (e) {

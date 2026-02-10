@@ -107,6 +107,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                   return NotificationTile(
                     notification: notification,
                     onTap: () {
+                      _showNotificationDetails(notification);
                       context
                           .read<NotificationViewModel>()
                           .markAsRead(notification.id);
@@ -119,6 +120,48 @@ class _NotificationsPageState extends State<NotificationsPage> {
         },
       ),
     );
+  }
+
+  void _showNotificationDetails(dynamic notification) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(notification.title),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(notification.body),
+            const SizedBox(height: 12),
+            Text(
+              _formatNotificationDate(notification.createdAt),
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatNotificationDate(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = DateTime(now.year, now.month, now.day - 1);
+    final notificationDate = DateTime(date.year, date.month, date.day);
+
+    if (notificationDate == today) {
+      return 'Today at ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
+    } else if (notificationDate == yesterday) {
+      return 'Yesterday at ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
+    } else {
+      return '${date.day}/${date.month}/${date.year} at ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
+    }
   }
 }
 

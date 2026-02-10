@@ -11,4 +11,5 @@ class UserSession {
   static bool reminders = true;
 
   static String profileImagePath = ""; // local image path (temporary)
+  static int profileAvatarColor = 0xFF800000; // fallback avatar color
 }

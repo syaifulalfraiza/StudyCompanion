@@ -255,6 +255,9 @@ class NotificationService {
   /// Mark notification as read
   static Future<void> markNotificationAsRead(String notificationId) async {
     try {
+      if (useSampleData) {
+        return;
+      }
       await _firestore
           .collection(_notificationsCollection)
           .doc(notificationId)
