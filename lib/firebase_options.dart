@@ -42,45 +42,49 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyDemoWebKey123456789',
-    appId: '1:123456789:web:abcdef1234567890',
-    messagingSenderId: '123456789',
-    projectId: 'studycompanion-demo',
-    authDomain: 'studycompanion-demo.firebaseapp.com',
-    storageBucket: 'studycompanion-demo.appspot.com',
+    apiKey: 'AIzaSyBWGOVyzDjrpfsV2Awe4-X6bpyiUwkt_CI',
+    appId: '1:869641026445:web:59a1ace7bf8cbc804edbc4',
+    messagingSenderId: '869641026445',
+    projectId: 'study-companion-5f354',
+    authDomain: 'study-companion-5f354.firebaseapp.com',
+    storageBucket: 'study-companion-5f354.firebasestorage.app',
+    measurementId: 'G-B5F47847VZ',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyDemoAndroidKey123456789',
-    appId: '1:123456789:android:abcdef1234567890',
-    messagingSenderId: '123456789',
-    projectId: 'studycompanion-demo',
-    storageBucket: 'studycompanion-demo.appspot.com',
+    apiKey: 'AIzaSyDaoUy205HARXHACb9Tp3k02QSrKqFNC6M',
+    appId: '1:869641026445:android:3b82772f726ca9914edbc4',
+    messagingSenderId: '869641026445',
+    projectId: 'study-companion-5f354',
+    storageBucket: 'study-companion-5f354.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyDemoIOSKey123456789',
-    appId: '1:123456789:ios:abcdef1234567890',
-    messagingSenderId: '123456789',
-    projectId: 'studycompanion-demo',
-    storageBucket: 'studycompanion-demo.appspot.com',
+    apiKey: 'AIzaSyA67V2zg_DJTF64AjaxmmG-8U7KTglya9Y',
+    appId: '1:869641026445:ios:9fc2b143689066844edbc4',
+    messagingSenderId: '869641026445',
+    projectId: 'study-companion-5f354',
+    storageBucket: 'study-companion-5f354.firebasestorage.app',
     iosBundleId: 'com.example.studycompanionApp',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyDemoMacOSKey123456789',
-    appId: '1:123456789:macos:abcdef1234567890',
-    messagingSenderId: '123456789',
-    projectId: 'studycompanion-demo',
-    storageBucket: 'studycompanion-demo.appspot.com',
+    apiKey: 'AIzaSyA67V2zg_DJTF64AjaxmmG-8U7KTglya9Y',
+    appId: '1:869641026445:ios:9fc2b143689066844edbc4',
+    messagingSenderId: '869641026445',
+    projectId: 'study-companion-5f354',
+    storageBucket: 'study-companion-5f354.firebasestorage.app',
     iosBundleId: 'com.example.studycompanionApp',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyDemoWindowsKey123456789',
-    appId: '1:123456789:windows:abcdef1234567890',
-    messagingSenderId: '123456789',
-    projectId: 'studycompanion-demo',
-    storageBucket: 'studycompanion-demo.appspot.com',
+    apiKey: 'AIzaSyBWGOVyzDjrpfsV2Awe4-X6bpyiUwkt_CI',
+    appId: '1:869641026445:web:0c655179b892d32f4edbc4',
+    messagingSenderId: '869641026445',
+    projectId: 'study-companion-5f354',
+    authDomain: 'study-companion-5f354.firebaseapp.com',
+    storageBucket: 'study-companion-5f354.firebasestorage.app',
+    measurementId: 'G-TGVMH1SFDJ',
   );
+
 }
