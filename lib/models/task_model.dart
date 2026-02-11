@@ -30,6 +30,27 @@ class Task {
     );
   }
 
+  factory Task.fromJson(Map<String, dynamic> json, String id) {
+    return Task(
+      id: id,
+      title: (json['title'] ?? '') as String,
+      dueDate: (json['dueDate'] ?? '') as String,
+      subject: (json['subject'] ?? '') as String,
+      isCompleted: (json['isCompleted'] ?? false) as bool,
+    );
+  }
+
+  Map<String, dynamic> toJson({required String studentId}) {
+    return {
+      'studentId': studentId,
+      'title': title,
+      'subject': subject,
+      'dueDate': dueDate,
+      'isCompleted': isCompleted,
+    };
+  }
+
   @override
-  String toString() => 'Task(id: $id, title: $title, dueDate: $dueDate, subject: $subject, isCompleted: $isCompleted)';
+  String toString() =>
+      'Task(id: $id, title: $title, dueDate: $dueDate, subject: $subject, isCompleted: $isCompleted)';
 }

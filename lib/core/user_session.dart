@@ -1,5 +1,6 @@
 class UserSession {
   //thsis for user session management
+  static String userId = "";
   static String name = "";
   static String role = "";
   static String email = "";

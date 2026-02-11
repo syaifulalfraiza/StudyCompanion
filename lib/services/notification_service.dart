@@ -4,7 +4,8 @@ import 'package:studycompanion_app/models/notification_model.dart';
 import 'package:studycompanion_app/services/sample_notification_data.dart';
 
 class NotificationService {
-  static final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
+  static final FirebaseMessaging _firebaseMessaging =
+      FirebaseMessaging.instance;
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   static const String _notificationsCollection = 'notifications';
   static bool useSampleData = true; // Toggle for testing
@@ -28,7 +29,9 @@ class NotificationService {
 
       // Handle foreground notifications
       FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-        print('Received foreground notification: ${message.notification?.title}');
+        print(
+          'Received foreground notification: ${message.notification?.title}',
+        );
         _handleNotification(message);
       });
 
@@ -39,7 +42,9 @@ class NotificationService {
       });
 
       // Handle background notifications
-      FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+      FirebaseMessaging.onBackgroundMessage(
+        _firebaseMessagingBackgroundHandler,
+      );
 
       print('Firebase Messaging initialized successfully');
     } catch (e) {
@@ -49,7 +54,8 @@ class NotificationService {
 
   /// Background message handler
   static Future<void> _firebaseMessagingBackgroundHandler(
-      RemoteMessage message) async {
+    RemoteMessage message,
+  ) async {
     print('Handling background notification: ${message.notification?.title}');
     // Handle background notification
   }
@@ -60,7 +66,9 @@ class NotificationService {
     final data = message.data;
 
     if (notification != null) {
-      print('Notification - Title: ${notification.title}, Body: ${notification.body}');
+      print(
+        'Notification - Title: ${notification.title}, Body: ${notification.body}',
+      );
       // You can add custom logic here to handle notifications
     }
 
@@ -77,7 +85,10 @@ class NotificationService {
     required String dueDate,
   }) async {
     try {
-      final notificationId = _firestore.collection(_notificationsCollection).doc().id;
+      final notificationId = _firestore
+          .collection(_notificationsCollection)
+          .doc()
+          .id;
 
       final notification = NotificationModel(
         id: notificationId,
@@ -106,7 +117,10 @@ class NotificationService {
     required String achievement,
   }) async {
     try {
-      final notificationId = _firestore.collection(_notificationsCollection).doc().id;
+      final notificationId = _firestore
+          .collection(_notificationsCollection)
+          .doc()
+          .id;
 
       final notification = NotificationModel(
         id: notificationId,
@@ -136,7 +150,10 @@ class NotificationService {
     required String progressUpdate,
   }) async {
     try {
-      final notificationId = _firestore.collection(_notificationsCollection).doc().id;
+      final notificationId = _firestore
+          .collection(_notificationsCollection)
+          .doc()
+          .id;
 
       final notification = NotificationModel(
         id: notificationId,
@@ -161,12 +178,13 @@ class NotificationService {
 
   /// Get student's notifications from Firestore or sample data
   static Future<List<NotificationModel>> getStudentNotifications(
-      String studentId) async {
+    String studentId,
+  ) async {
     // Use sample data for testing/demo purposes
     if (useSampleData) {
       return SampleNotificationData.generateSampleNotifications();
     }
-    
+
     try {
       final querySnapshot = await _firestore
           .collection(_notificationsCollection)
@@ -186,25 +204,29 @@ class NotificationService {
 
   /// Stream student's notifications for real-time updates
   static Stream<List<NotificationModel>> streamStudentNotifications(
-      String studentId) {
+    String studentId,
+  ) {
     return _firestore
         .collection(_notificationsCollection)
         .where('studentId', isEqualTo: studentId)
         .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((querySnapshot) => querySnapshot.docs
-            .map((doc) => NotificationModel.fromJson(doc.data()))
-            .toList());
+        .map(
+          (querySnapshot) => querySnapshot.docs
+              .map((doc) => NotificationModel.fromJson(doc.data()))
+              .toList(),
+        );
   }
 
   /// Get parent's notifications from Firestore or sample data
   static Future<List<NotificationModel>> getParentNotifications(
-      String parentId) async {
+    String parentId,
+  ) async {
     // Use sample data for testing/demo purposes
     if (useSampleData) {
       return SampleNotificationData.generateSampleParentNotifications();
     }
-    
+
     try {
       final querySnapshot = await _firestore
           .collection(_notificationsCollection)
@@ -224,19 +246,25 @@ class NotificationService {
 
   /// Stream parent's notifications for real-time updates
   static Stream<List<NotificationModel>> streamParentNotifications(
-      String parentId) {
+    String parentId,
+  ) {
     return _firestore
         .collection(_notificationsCollection)
         .where('parentId', isEqualTo: parentId)
         .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((querySnapshot) => querySnapshot.docs
-            .map((doc) => NotificationModel.fromJson(doc.data()))
-            .toList());
+        .map(
+          (querySnapshot) => querySnapshot.docs
+              .map((doc) => NotificationModel.fromJson(doc.data()))
+              .toList(),
+        );
   }
 
   /// Get unread notification count
-  static Future<int> getUnreadCount(String userId, {bool isStudent = true}) async {
+  static Future<int> getUnreadCount(
+    String userId, {
+    bool isStudent = true,
+  }) async {
     try {
       final field = isStudent ? 'studentId' : 'parentId';
       final querySnapshot = await _firestore
@@ -281,7 +309,7 @@ class NotificationService {
           : SampleNotificationData.generateSampleParentNotifications();
       return allNotifications.take(limit).toList();
     }
-    
+
     try {
       final field = isStudent ? 'studentId' : 'parentId';
       final querySnapshot = await _firestore

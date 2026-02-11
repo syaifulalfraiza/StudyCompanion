@@ -38,4 +38,18 @@ class AnnouncementModel {
       'isPublished': isPublished,
     };
   }
+
+  /// Getter for content (alias for message)
+  String get content => message;
+
+  /// Getter for formatted date
+  String get formattedDate {
+    final now = DateTime.now();
+    if (date.year == now.year && date.month == now.month && date.day == now.day) {
+      return 'Today ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+    } else if (date.year == now.year) {
+      return '${date.month}/${date.day}';
+    }
+    return '${date.year}-${date.month}-${date.day}';
+  }
 }

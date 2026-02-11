@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:studycompanion_app/views/student_dashboard.dart';
 import 'package:studycompanion_app/views/teacher_dashboard.dart';
 import 'package:studycompanion_app/views/parent_dashboard.dart';
@@ -19,7 +21,6 @@ class _LoginViewModelState extends State<LoginViewModel> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _obscurePassword = true;
-  static const String _demoPassword = 'password123';
 
   final List<String> _roles = ['Student', 'Parent', 'Teacher', 'Admin'];
   int _selectedRoleIndex = 0;
@@ -351,71 +352,145 @@ class _LoginViewModelState extends State<LoginViewModel> {
                                   ),
                                   elevation: 8,
                                 ),
-                                onPressed: () {
+                                onPressed: () async {
                                   final email = _emailController.text.trim();
                                   final password = _passwordController.text;
 
                                   if (email.isEmpty || password.isEmpty) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
-                                        content: Text('Email and password are required.'),
+                                        content: Text(
+                                          'Email and password are required.',
+                                        ),
                                       ),
                                     );
                                     return;
                                   }
 
-                                  if (password != _demoPassword) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Incorrect password.'),
-                                      ),
-                                    );
-                                    return;
-                                  }
-
-                                  // Replace with your sign-in logic
                                   final selectedRole =
-                                      _roles[_selectedRoleIndex];
-                                  // ✅ STORE USER GLOBALLY (ADD HERE)
-                                  UserSession.name =
-                                      _emailController.text; // temp name
-                                  UserSession.email = _emailController.text;
-                                  UserSession.role = selectedRole;
+                                      _roles[_selectedRoleIndex].toLowerCase();
 
-                                  Widget destinationScreen;
+                                  try {
+                                    await FirebaseAuth.instance
+                                        .signInWithEmailAndPassword(
+                                          email: email,
+                                          password: password,
+                                        );
 
-                                  switch (selectedRole) {
-                                    case 'Student':
-                                      destinationScreen =
-                                          const StudentDashboard();
-                                      break;
+                                    final userSnapshot = await FirebaseFirestore
+                                        .instance
+                                        .collection('users')
+                                        .where('email', isEqualTo: email)
+                                        .limit(1)
+                                        .get();
 
-                                    case 'Teacher':
-                                      destinationScreen =
-                                          const TeacherDashboard();
-                                      break;
+                                    if (userSnapshot.docs.isEmpty) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'User record not found in Firestore.',
+                                          ),
+                                        ),
+                                      );
+                                      return;
+                                    }
 
-                                    case 'Parent':
-                                      destinationScreen =
-                                          const ParentDashboard();
-                                      break;
+                                    final userDoc = userSnapshot.docs.first;
+                                    final data = userDoc.data();
+                                    final role = (data['role'] ?? '')
+                                        .toString()
+                                        .toLowerCase();
 
-                                    case 'Admin':
-                                      destinationScreen =
-                                          const AdminDashboard();
-                                      break;
+                                    if (role.isEmpty) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'User role is missing in Firestore.',
+                                          ),
+                                        ),
+                                      );
+                                      return;
+                                    }
 
-                                    default:
-                                      destinationScreen =
-                                          const StudentDashboard();
+                                    if (selectedRole != role) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            'Selected role does not match this user. Expected: $role.',
+                                          ),
+                                        ),
+                                      );
+                                      return;
+                                    }
+
+                                    // ✅ STORE USER GLOBALLY
+                                    UserSession.userId = data['userId'] ?? userDoc.id;
+                                    UserSession.name = (data['name'] ?? email)
+                                        .toString();
+                                    UserSession.email = email;
+                                    UserSession.role = role;
+                                    UserSession.phone = (data['phone'] ?? '')
+                                        .toString();
+
+                                    Widget destinationScreen;
+
+                                    switch (role) {
+                                      case 'student':
+                                        destinationScreen =
+                                            const StudentDashboard();
+                                        break;
+
+                                      case 'teacher':
+                                        destinationScreen =
+                                            const TeacherDashboard();
+                                        break;
+
+                                      case 'parent':
+                                        destinationScreen =
+                                            const ParentDashboard();
+                                        break;
+
+                                      case 'admin':
+                                        destinationScreen =
+                                            const AdminDashboard();
+                                        break;
+
+                                      default:
+                                        destinationScreen =
+                                            const StudentDashboard();
+                                    }
+                                    if (!mounted) return;
+                                    Navigator.pushReplacement(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => destinationScreen,
+                                      ),
+                                    );
+                                  } on FirebaseAuthException catch (e) {
+                                    final message = switch (e.code) {
+                                      'user-not-found' =>
+                                        'No user found for that email.',
+                                      'wrong-password' => 'Incorrect password.',
+                                      'invalid-email' =>
+                                        'Invalid email address.',
+                                      _ => 'Login failed: ${e.message}',
+                                    };
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text(message)),
+                                    );
+                                  } catch (e) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Login failed: $e'),
+                                      ),
+                                    );
                                   }
-
-                                  Navigator.pushReplacement(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => destinationScreen,
-                                    ),
-                                  );
                                 },
                                 child: const Text(
                                   'Sign In',

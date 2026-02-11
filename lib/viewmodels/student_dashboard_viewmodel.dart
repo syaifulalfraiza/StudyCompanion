@@ -1,11 +1,23 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
+import 'package:studycompanion_app/core/user_session.dart';
 import 'package:studycompanion_app/models/task_model.dart';
+import 'package:studycompanion_app/services/task_service.dart';
 
 class StudentDashboardViewModel extends ChangeNotifier {
   late List<Task> _tasks;
-  
-  StudentDashboardViewModel() {
+  final String _studentId;
+  StreamSubscription<List<Task>>? _tasksSubscription;
+  bool _isLoading = false;
+  String? _error;
+
+  StudentDashboardViewModel({String? studentId})
+    : _studentId = (studentId != null && studentId.isNotEmpty)
+          ? studentId
+          : (UserSession.userId.isNotEmpty ? UserSession.userId : 's1') {
     _initializeTasks();
+    _subscribeToTasks();
   }
 
   void _initializeTasks() {
@@ -37,7 +49,29 @@ class StudentDashboardViewModel extends ChangeNotifier {
     ];
   }
 
+  void _subscribeToTasks() {
+    _isLoading = true;
+    notifyListeners();
+
+    _tasksSubscription?.cancel();
+    _tasksSubscription = TaskService.streamStudentTasks(_studentId).listen(
+      (tasks) {
+        _tasks = tasks;
+        _error = null;
+        _isLoading = false;
+        notifyListeners();
+      },
+      onError: (error) {
+        _error = 'Failed to load tasks: $error';
+        _isLoading = false;
+        notifyListeners();
+      },
+    );
+  }
+
   List<Task> get tasks => _tasks;
+  bool get isLoading => _isLoading;
+  String? get error => _error;
 
   // Get overall progress percentage
   double get overallProgress {
@@ -50,51 +84,61 @@ class StudentDashboardViewModel extends ChangeNotifier {
   int get progressPercentage => (overallProgress * 100).toInt();
 
   // Toggle task completion status
-  void toggleTaskCompletion(String taskId) {
+  Future<void> toggleTaskCompletion(String taskId) async {
     final taskIndex = _tasks.indexWhere((task) => task.id == taskId);
     if (taskIndex != -1) {
-      _tasks[taskIndex].isCompleted = !_tasks[taskIndex].isCompleted;
+      final newValue = !_tasks[taskIndex].isCompleted;
+      _tasks[taskIndex].isCompleted = newValue;
       notifyListeners();
+      await TaskService.toggleTaskCompletion(
+        taskId: taskId,
+        isCompleted: newValue,
+      );
     }
   }
 
   // Add a new task
-  void addTask({
+  Future<void> addTask({
     required String title,
     required String dueDate,
     required String subject,
   }) {
-    final newTask = Task(
-      id: DateTime.now().microsecondsSinceEpoch.toString(),
+    return TaskService.createTask(
+      studentId: _studentId,
       title: title,
-      dueDate: dueDate,
       subject: subject,
+      dueDate: dueDate,
     );
-    _tasks.insert(0, newTask);
-    notifyListeners();
   }
 
   // Update an existing task
-  void updateTask(Task updatedTask) {
-    final index = _tasks.indexWhere((task) => task.id == updatedTask.id);
-    if (index != -1) {
-      _tasks[index] = updatedTask;
-      notifyListeners();
-    }
+  Future<void> updateTask(Task updatedTask) async {
+    await TaskService.updateTask(
+      taskId: updatedTask.id,
+      title: updatedTask.title,
+      subject: updatedTask.subject,
+      dueDate: updatedTask.dueDate,
+    );
   }
 
   // Delete a task
-  void deleteTask(String taskId) {
-    _tasks.removeWhere((task) => task.id == taskId);
-    notifyListeners();
+  Future<void> deleteTask(String taskId) async {
+    await TaskService.deleteTask(taskId);
   }
 
   // Get completed tasks count
-  int get completedTasksCount => _tasks.where((task) => task.isCompleted).length;
+  int get completedTasksCount =>
+      _tasks.where((task) => task.isCompleted).length;
 
   // Get total tasks count
   int get totalTasksCount => _tasks.length;
 
   // Get pending tasks count
   int get pendingTasksCount => _tasks.where((task) => !task.isCompleted).length;
+
+  @override
+  void dispose() {
+    _tasksSubscription?.cancel();
+    super.dispose();
+  }
 }

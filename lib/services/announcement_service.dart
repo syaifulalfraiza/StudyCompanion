@@ -13,7 +13,7 @@ class AnnouncementService {
     if (useSampleData) {
       return SampleAnnouncementData.generateSampleAnnouncements();
     }
-    
+
     try {
       final querySnapshot = await _firestore
           .collection(_collectionName)
@@ -21,13 +21,11 @@ class AnnouncementService {
           .orderBy('date', descending: true)
           .get();
 
-      return querySnapshot.docs
-          .map((doc) {
-            final data = doc.data();
-            data['id'] = doc.id;
-            return AnnouncementModel.fromJson(data);
-          })
-          .toList();
+      return querySnapshot.docs.map((doc) {
+        final data = doc.data();
+        data['id'] = doc.id;
+        return AnnouncementModel.fromJson(data);
+      }).toList();
     } catch (e) {
       print('Error fetching announcements: $e');
       // Fallback to sample data on error
@@ -87,13 +85,11 @@ class AnnouncementService {
         .orderBy('date', descending: true)
         .snapshots()
         .map((querySnapshot) {
-      return querySnapshot.docs
-          .map((doc) {
+          return querySnapshot.docs.map((doc) {
             final data = doc.data();
             data['id'] = doc.id;
             return AnnouncementModel.fromJson(data);
-          })
-          .toList();
-    });
+          }).toList();
+        });
   }
 }

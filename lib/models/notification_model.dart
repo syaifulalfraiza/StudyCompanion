@@ -47,10 +47,21 @@ class NotificationModel {
       notificationType: json['notificationType'] ?? 'alert',
       relatedEntityId: json['relatedEntityId'],
       createdAt: json['createdAt'] != null
-          ? DateTime.parse(json['createdAt'])
+          ? DateTime.parse(json['createdAt'] as String)
           : DateTime.now(),
-      isRead: json['isRead'] ?? false,
+      isRead: json['isRead'] as bool? ?? false,
     );
+  }
+
+  /// Getter for formatted date
+  String get formattedDate {
+    final now = DateTime.now();
+    if (createdAt.year == now.year && createdAt.month == now.month && createdAt.day == now.day) {
+      return 'Today ${createdAt.hour.toString().padLeft(2, '0')}:${createdAt.minute.toString().padLeft(2, '0')}';
+    } else if (createdAt.year == now.year) {
+      return '${createdAt.month}/${createdAt.day}';
+    }
+    return '${createdAt.year}-${createdAt.month}-${createdAt.day}';
   }
 
   // Copy with method for immutability
