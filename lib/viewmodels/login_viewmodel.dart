@@ -128,9 +128,9 @@ class _LoginViewModelState extends State<LoginViewModel> {
                         decoration: BoxDecoration(
                           color: _primary,
                           borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
+                            boxShadow: [
                             BoxShadow(
-                              color: _primary.withOpacity(0.25),
+                              color: _primary.withAlpha((0.25 * 255).round()),
                               blurRadius: 12,
                               spreadRadius: -3,
                             ),
@@ -212,9 +212,9 @@ class _LoginViewModelState extends State<LoginViewModel> {
                       Container(
                         padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
-                          color: isDark
+                            color: isDark
                               ? Colors.white10
-                              : Colors.grey.shade200.withOpacity(0.6),
+                              : Colors.grey.shade200.withAlpha((0.6 * 255).round()),
                           borderRadius: BorderRadius.circular(14),
                         ),
                         child: Row(
@@ -239,9 +239,9 @@ class _LoginViewModelState extends State<LoginViewModel> {
                                     boxShadow: selected
                                         ? [
                                             BoxShadow(
-                                              color: isDark
-                                                  ? _primary.withOpacity(0.25)
-                                                  : Colors.black12,
+                        color: isDark
+                          ? _primary.withAlpha((0.25 * 255).round())
+                          : Colors.black12,
                                               blurRadius: 6,
                                             ),
                                           ]
