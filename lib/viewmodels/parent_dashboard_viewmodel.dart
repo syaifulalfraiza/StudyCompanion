@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:studycompanion_app/core/user_session.dart';
 import 'package:studycompanion_app/models/child_model.dart';
 import 'package:studycompanion_app/models/task_model.dart';
+import 'package:studycompanion_app/services/firestore_parent_service.dart';
 import 'package:studycompanion_app/services/parent_service.dart';
 import 'package:studycompanion_app/services/task_service.dart';
 import 'package:studycompanion_app/services/sample_child_data.dart';
@@ -17,6 +18,7 @@ class ParentDashboardViewModel extends ChangeNotifier {
   // 📊 State Flags
   bool _isLoading = false;
   String? _error;
+  bool _useFirestore = true; // Toggle to use Firestore instead of sample data
 
   // 🔄 Subscriptions
   StreamSubscription<List<ChildModel>>? _childrenSubscription;
@@ -26,6 +28,9 @@ class ParentDashboardViewModel extends ChangeNotifier {
 
   // Parent ID
   final String _parentId;
+  
+  // Firestore service
+  final FirestoreParentService _firestoreService = FirestoreParentService();
 
   ParentDashboardViewModel({String? parentId})
       : _parentId = (parentId != null && parentId.isNotEmpty)
@@ -46,14 +51,24 @@ class ParentDashboardViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final children = await ParentService.getChildren(parentId: _parentId);
+      List<ChildModel> children;
+      
+      // Use Firestore if enabled
+      if (_useFirestore) {
+        children = await _firestoreService.getChildrenForParent(_parentId);
+      } else {
+        children = await ParentService.getChildren(parentId: _parentId);
+      }
+      
       if (children.isNotEmpty) {
         _children = children;
         _selectedChild = _children.first;
-        _loadTasksForSelectedChild();
+        await _loadTasksForSelectedChild();
         _error = null;
       } else {
         _error = 'No children found';
+        // Fallback to sample data
+        _loadSampleChildren();
       }
     } catch (e) {
       print('Error initializing children: $e');
@@ -69,33 +84,54 @@ class ParentDashboardViewModel extends ChangeNotifier {
   /// Subscribe to real-time children updates
   void _subscribeToChildren() {
     _childrenSubscription?.cancel();
-    _childrenSubscription =
-        ParentService.streamChildren(parentId: _parentId).listen(
-      (children) {
-        if (children.isNotEmpty) {
-          _children = children;
-          // If no child was selected, select the first one
-          if (_selectedChild == null) {
-            _selectedChild = _children.first;
-            _loadTasksForSelectedChild();
-          } else {
-            // Update the selected child if it's in the new list
-            final updatedChild = _children.firstWhere(
-              (c) => c.id == _selectedChild!.id,
-              orElse: () => _children.first,
-            );
-            _selectedChild = updatedChild;
-          }
-          _error = null;
-        }
-        notifyListeners();
-      },
-      onError: (error) {
-        print('Error streaming children: $error');
-        _error = 'Failed to stream children: $error';
-        notifyListeners();
-      },
-    );
+    
+    // Use Firestore if enabled
+    if (_useFirestore) {
+      _childrenSubscription =
+          _firestoreService.streamChildrenForParent(_parentId).listen(
+        (children) {
+          _handleChildrenUpdate(children);
+        },
+        onError: (error) {
+          print('Error streaming children: $error');
+          _error = 'Failed to stream children: $error';
+          notifyListeners();
+        },
+      );
+    } else {
+      _childrenSubscription =
+          ParentService.streamChildren(parentId: _parentId).listen(
+        (children) {
+          _handleChildrenUpdate(children);
+        },
+        onError: (error) {
+          print('Error streaming children: $error');
+          _error = 'Failed to stream children: $error';
+          notifyListeners();
+        },
+      );
+    }
+  }
+  
+  /// Handle children update from stream
+  void _handleChildrenUpdate(List<ChildModel> children) {
+    if (children.isNotEmpty) {
+      _children = children;
+      // If no child was selected, select the first one
+      if (_selectedChild == null) {
+        _selectedChild = _children.first;
+        _loadTasksForSelectedChild();
+      } else {
+        // Update the selected child if it's in the new list
+        final updatedChild = _children.firstWhere(
+          (c) => c.id == _selectedChild!.id,
+          orElse: () => _children.first,
+        );
+        _selectedChild = updatedChild;
+      }
+      _error = null;
+    }
+    notifyListeners();
   }
 
   /// Load sample children (fallback for offline mode)
@@ -139,7 +175,16 @@ class ParentDashboardViewModel extends ChangeNotifier {
     if (_selectedChild == null) return;
 
     try {
-      final tasks = await TaskService.getStudentTasks(_selectedChild!.id);
+      List<Task> tasks;
+      
+      // Use Firestore if enabled
+      if (_useFirestore) {
+        final taskMaps = await _firestoreService.getChildTasks(_selectedChild!.id);
+        tasks = taskMaps.map((map) => Task.fromJson(map, map['id'] ?? '')).toList();
+      } else {
+        tasks = await TaskService.getStudentTasks(_selectedChild!.id);
+      }
+      
       _selectedChildTasks = tasks;
     } catch (e) {
       print('Error loading tasks for child: $e');
@@ -153,7 +198,15 @@ class ParentDashboardViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final children = await ParentService.getChildren(parentId: _parentId);
+      List<ChildModel> children;
+      
+      // Use Firestore if enabled
+      if (_useFirestore) {
+        children = await _firestoreService.getChildrenForParent(_parentId);
+      } else {
+        children = await ParentService.getChildren(parentId: _parentId);
+      }
+      
       _children = children;
       if (_selectedChild != null) {
         await _loadTasksForSelectedChild();
@@ -173,9 +226,23 @@ class ParentDashboardViewModel extends ChangeNotifier {
     Map<String, dynamic> updates,
   ) async {
     try {
-      await ParentService.updateChild(childId, updates);
-      await refreshChildren();
-      _error = null;
+      bool success;
+      
+      // Use Firestore if enabled
+      if (_useFirestore) {
+        success = await _firestoreService.updateChild(childId, updates);
+      } else {
+        await ParentService.updateChild(childId, updates);
+        success = true;
+      }
+      
+      if (success) {
+        await refreshChildren();
+        _error = null;
+      } else {
+        _error = 'Failed to update child';
+        notifyListeners();
+      }
     } catch (e) {
       _error = 'Failed to update child: $e';
       notifyListeners();
@@ -189,13 +256,31 @@ class ParentDashboardViewModel extends ChangeNotifier {
     int score,
   ) async {
     try {
-      await ParentService.updateSubjectPerformance(
-        childId,
-        subjectName,
-        score,
-      );
-      await refreshChildren();
-      _error = null;
+      bool success;
+      
+      // Use Firestore if enabled
+      if (_useFirestore) {
+        success = await _firestoreService.updateSubjectPerformance(
+          childId: childId,
+          subjectName: subjectName,
+          score: score,
+        );
+      } else {
+        await ParentService.updateSubjectPerformance(
+          childId,
+          subjectName,
+          score,
+        );
+        success = true;
+      }
+      
+      if (success) {
+        await refreshChildren();
+        _error = null;
+      } else {
+        _error = 'Failed to update subject performance';
+        notifyListeners();
+      }
     } catch (e) {
       _error = 'Failed to update subject performance: $e';
       notifyListeners();
@@ -299,6 +384,22 @@ class ParentDashboardViewModel extends ChangeNotifier {
     if (_selectedChild == null) return [];
     return SampleTaskData.getTasksForStudent(_selectedChild!.id);
   }
+
+  // ============================================
+  // 🔥 FIRESTORE MODE CONTROL
+  // ============================================
+
+  /// Toggle between Firestore and fallback mode
+  void setFirestoreMode(bool useFirestore) {
+    if (_useFirestore != useFirestore) {
+      _useFirestore = useFirestore;
+      _subscribeToChildren();
+      _initializeChildren();
+    }
+  }
+
+  /// Check if using Firestore
+  bool get isUsingFirestore => _useFirestore;
 
   // ============================================
   // 🧹 CLEANUP

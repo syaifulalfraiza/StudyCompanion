@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:studycompanion_app/core/user_session.dart';
 import 'package:studycompanion_app/models/task_model.dart';
+import 'package:studycompanion_app/services/firestore_student_service.dart';
 import 'package:studycompanion_app/services/task_service.dart';
 
 class StudentDashboardViewModel extends ChangeNotifier {
@@ -11,6 +12,8 @@ class StudentDashboardViewModel extends ChangeNotifier {
   StreamSubscription<List<Task>>? _tasksSubscription;
   bool _isLoading = false;
   String? _error;
+  bool _useFirestore = true; // Toggle to use Firestore instead of TaskService
+  final FirestoreStudentService _firestoreService = FirestoreStudentService();
 
   StudentDashboardViewModel({String? studentId})
     : _studentId = (studentId != null && studentId.isNotEmpty)
@@ -54,19 +57,38 @@ class StudentDashboardViewModel extends ChangeNotifier {
     notifyListeners();
 
     _tasksSubscription?.cancel();
-    _tasksSubscription = TaskService.streamStudentTasks(_studentId).listen(
-      (tasks) {
-        _tasks = tasks;
-        _error = null;
-        _isLoading = false;
-        notifyListeners();
-      },
-      onError: (error) {
-        _error = 'Failed to load tasks: $error';
-        _isLoading = false;
-        notifyListeners();
-      },
-    );
+    
+    // Use Firestore service if enabled
+    if (_useFirestore) {
+      _tasksSubscription = _firestoreService.streamStudentTasks(_studentId).listen(
+        (tasks) {
+          _tasks = tasks;
+          _error = null;
+          _isLoading = false;
+          notifyListeners();
+        },
+        onError: (error) {
+          _error = 'Failed to load tasks: $error';
+          _isLoading = false;
+          notifyListeners();
+        },
+      );
+    } else {
+      // Fallback to TaskService
+      _tasksSubscription = TaskService.streamStudentTasks(_studentId).listen(
+        (tasks) {
+          _tasks = tasks;
+          _error = null;
+          _isLoading = false;
+          notifyListeners();
+        },
+        onError: (error) {
+          _error = 'Failed to load tasks: $error';
+          _isLoading = false;
+          notifyListeners();
+        },
+      );
+    }
   }
 
   List<Task> get tasks => _tasks;
@@ -90,10 +112,19 @@ class StudentDashboardViewModel extends ChangeNotifier {
       final newValue = !_tasks[taskIndex].isCompleted;
       _tasks[taskIndex].isCompleted = newValue;
       notifyListeners();
-      await TaskService.toggleTaskCompletion(
-        taskId: taskId,
-        isCompleted: newValue,
-      );
+      
+      // Use Firestore if enabled
+      if (_useFirestore) {
+        await _firestoreService.toggleTaskCompletion(
+          taskId: taskId,
+          isCompleted: newValue,
+        );
+      } else {
+        await TaskService.toggleTaskCompletion(
+          taskId: taskId,
+          isCompleted: newValue,
+        );
+      }
     }
   }
 
@@ -103,27 +134,49 @@ class StudentDashboardViewModel extends ChangeNotifier {
     required String dueDate,
     required String subject,
   }) {
-    return TaskService.createTask(
-      studentId: _studentId,
-      title: title,
-      subject: subject,
-      dueDate: dueDate,
-    );
+    if (_useFirestore) {
+      return _firestoreService.createTask(
+        studentId: _studentId,
+        title: title,
+        subject: subject,
+        dueDate: dueDate,
+      ).then((_) => {});
+    } else {
+      return TaskService.createTask(
+        studentId: _studentId,
+        title: title,
+        subject: subject,
+        dueDate: dueDate,
+      );
+    }
   }
 
   // Update an existing task
   Future<void> updateTask(Task updatedTask) async {
-    await TaskService.updateTask(
-      taskId: updatedTask.id,
-      title: updatedTask.title,
-      subject: updatedTask.subject,
-      dueDate: updatedTask.dueDate,
-    );
+    if (_useFirestore) {
+      await _firestoreService.updateTask(
+        taskId: updatedTask.id,
+        title: updatedTask.title,
+        subject: updatedTask.subject,
+        dueDate: updatedTask.dueDate,
+      );
+    } else {
+      await TaskService.updateTask(
+        taskId: updatedTask.id,
+        title: updatedTask.title,
+        subject: updatedTask.subject,
+        dueDate: updatedTask.dueDate,
+      );
+    }
   }
 
   // Delete a task
   Future<void> deleteTask(String taskId) async {
-    await TaskService.deleteTask(taskId);
+    if (_useFirestore) {
+      await _firestoreService.deleteTask(taskId);
+    } else {
+      await TaskService.deleteTask(taskId);
+    }
   }
 
   // Get completed tasks count
@@ -135,6 +188,17 @@ class StudentDashboardViewModel extends ChangeNotifier {
 
   // Get pending tasks count
   int get pendingTasksCount => _tasks.where((task) => !task.isCompleted).length;
+
+  /// Toggle between Firestore and fallback mode
+  void setFirestoreMode(bool useFirestore) {
+    if (_useFirestore != useFirestore) {
+      _useFirestore = useFirestore;
+      _subscribeToTasks();
+    }
+  }
+
+  /// Check if using Firestore
+  bool get isUsingFirestore => _useFirestore;
 
   @override
   void dispose() {

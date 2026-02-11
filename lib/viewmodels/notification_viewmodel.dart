@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:studycompanion_app/models/notification_model.dart';
 import 'package:studycompanion_app/services/notification_service.dart';
+import 'package:studycompanion_app/services/firestore_student_service.dart';
 
 class NotificationViewModel extends ChangeNotifier {
   List<NotificationModel> _notifications = [];
@@ -9,6 +10,9 @@ class NotificationViewModel extends ChangeNotifier {
   String? _error;
   String _userId = 's1'; // Default to Amir Abdullah (student)
   bool _isStudent = true;
+  bool _useFirestore = true; // Use Firestore by default
+  
+  final FirestoreStudentService _firestoreService = FirestoreStudentService();
 
   NotificationViewModel({String userId = 's1', bool isStudent = true}) {
     _userId = userId;
@@ -28,24 +32,58 @@ class NotificationViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
+      List<Map<String, dynamic>> notificationMaps;
+      
+      // Use Firestore if enabled
+      if (_useFirestore && _isStudent) {
+        notificationMaps = await _firestoreService.getStudentNotifications(_userId);
+      } else {
+        // Fallback to NotificationService
+        final previouslyReadIds = _notifications
+            .where((n) => n.isRead)
+            .map((n) => n.id)
+            .toSet();
+        final data = _isStudent
+            ? await NotificationService.getStudentNotifications(_userId)
+            : await NotificationService.getParentNotifications(_userId);
+
+        _notifications = data
+            .map((n) => previouslyReadIds.contains(n.id)
+                ? n.copyWith(isRead: true)
+                : n)
+            .toList();
+        _unreadCount = _notifications.where((n) => !n.isRead).length;
+        _error = null;
+        _isLoading = false;
+        notifyListeners();
+        return;
+      }
+      
+      // Convert Firestore maps to NotificationModel
       final previouslyReadIds = _notifications
           .where((n) => n.isRead)
           .map((n) => n.id)
           .toSet();
-      final data = _isStudent
-          ? await NotificationService.getStudentNotifications(_userId)
-          : await NotificationService.getParentNotifications(_userId);
-
-      _notifications = data
-          .map((n) => previouslyReadIds.contains(n.id)
-              ? n.copyWith(isRead: true)
-              : n)
+      
+      _notifications = notificationMaps
+          .map((map) => NotificationModel.fromJson(
+              {...map, 'isRead': previouslyReadIds.contains(map['id'])}))
           .toList();
       _unreadCount = _notifications.where((n) => !n.isRead).length;
       _error = null;
     } catch (e) {
       _error = 'Failed to load notifications: $e';
       print('Error loading notifications: $e');
+      // Fallback to sample data
+      try {
+        final data = _isStudent
+            ? await NotificationService.getStudentNotifications(_userId)
+            : await NotificationService.getParentNotifications(_userId);
+        _notifications = data;
+        _unreadCount = _notifications.where((n) => !n.isRead).length;
+      } catch (e2) {
+        print('Fallback also failed: $e2');
+      }
     }
 
     _isLoading = false;
@@ -82,7 +120,7 @@ class NotificationViewModel extends ChangeNotifier {
   /// Mark notification as read
   Future<void> markAsRead(String notificationId) async {
     try {
-      await NotificationService.markNotificationAsRead(notificationId);
+      // Update locally first for instant UI feedback
       final index = _notifications.indexWhere((n) => n.id == notificationId);
       if (index != -1) {
         final wasUnread = !_notifications[index].isRead;
@@ -91,6 +129,14 @@ class NotificationViewModel extends ChangeNotifier {
           _unreadCount--;
         }
         notifyListeners();
+      }
+      
+      // Update in Firestore if using Firestore mode
+      if (_useFirestore && _isStudent) {
+        await _firestoreService.markNotificationAsRead(notificationId);
+      } else {
+        // Fallback to NotificationService
+        await NotificationService.markNotificationAsRead(notificationId);
       }
     } catch (e) {
       print('Error marking notification as read: $e');
@@ -155,4 +201,15 @@ class NotificationViewModel extends ChangeNotifier {
       rethrow;
     }
   }
+
+  /// Toggle between Firestore and fallback mode
+  void setFirestoreMode(bool useFirestore) {
+    if (_useFirestore != useFirestore) {
+      _useFirestore = useFirestore;
+      _initializeNotifications();
+    }
+  }
+
+  /// Check if using Firestore
+  bool get isUsingFirestore => _useFirestore;
 }

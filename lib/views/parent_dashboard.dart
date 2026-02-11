@@ -22,13 +22,6 @@ class ParentDashboard extends StatefulWidget {
 class _ParentDashboardState extends State<ParentDashboard> {
   int _selectedIndex = 0;
 
-  final List<Widget> _pages = const [
-    ParentHomePage(),
-    ParentNotificationsPage(),
-    ParentCalendarPage(),
-    ParentProfilePage(),
-  ];
-
   void _onItemTapped(int index) {
     setState(() => _selectedIndex = index);
   }
@@ -50,8 +43,21 @@ class _ParentDashboardState extends State<ParentDashboard> {
           create: (_) => AnnouncementViewModel(),
         ),
       ],
-      child: Scaffold(
-        body: _pages[_selectedIndex],
+      child: Builder(
+        builder: (context) {
+          final pages = [
+            const ParentHomePage(),
+            Center(
+              child: Consumer<NotificationViewModel>(
+                builder: (context, notificationVM, _) =>
+                    ParentNotificationsPage(viewModel: notificationVM),
+              ),
+            ),
+            const ParentCalendarPage(),
+            const ParentProfilePage(),
+          ];
+          return Scaffold(
+            body: pages[_selectedIndex],
         bottomNavigationBar: BottomNavigationBar(
           currentIndex: _selectedIndex,
           selectedItemColor: const Color(0xFF800020),
@@ -70,6 +76,8 @@ class _ParentDashboardState extends State<ParentDashboard> {
             BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
           ],
         ),
+      );
+        },
       ),
     );
   }
@@ -128,7 +136,9 @@ class ParentHomePage extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => const ParentNotificationsPage(),
+                      builder: (_) => ParentNotificationsPage(
+                        viewModel: context.read<NotificationViewModel>(),
+                      ),
                     ),
                   );
                 },
@@ -403,7 +413,9 @@ class ParentHomePage extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const ParentNotificationsPage(),
+                        builder: (_) => ParentNotificationsPage(
+                          viewModel: context.read<NotificationViewModel>(),
+                        ),
                       ),
                     );
                   },
@@ -894,16 +906,12 @@ class ParentHomePage extends StatelessWidget {
               onPressed: () {
                 Navigator.pop(context);
                 // Clear user session
-                UserSession.userId = '';
-                UserSession.name = '';
-                UserSession.email = '';
-                UserSession.phone = '';
-                UserSession.profileImagePath = '';
+                UserSession.logout();
 
                 // Navigate back to login
                 Navigator.pushNamedAndRemoveUntil(
                   context,
-                  '/login',
+                  '/',
                   (route) => false,
                 );
               },
@@ -921,7 +929,9 @@ class ParentHomePage extends StatelessWidget {
 ////////////////////////////////////////////////////////////
 
 class ParentNotificationsPage extends StatelessWidget {
-  const ParentNotificationsPage({super.key});
+  final NotificationViewModel viewModel;
+
+  const ParentNotificationsPage({required this.viewModel, super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -935,95 +945,95 @@ class ParentNotificationsPage extends StatelessWidget {
           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
       ),
-      body: Consumer<NotificationViewModel>(
-        builder: (context, notificationVM, _) {
-          if (notificationVM.isLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      body: _buildNotificationBody(context, viewModel),
+    );
+  }
 
-          if (notificationVM.notifications.isEmpty) {
-            return const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.notifications_none, size: 64, color: Colors.grey),
-                  SizedBox(height: 16),
-                  Text(
-                    "No notifications",
-                    style: TextStyle(fontSize: 18, color: Colors.grey),
-                  ),
-                ],
+  Widget _buildNotificationBody(BuildContext context, NotificationViewModel notificationVM) {
+    if (notificationVM.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (notificationVM.notifications.isEmpty) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.notifications_none, size: 64, color: Colors.grey),
+            SizedBox(height: 16),
+            Text(
+              "No notifications",
+              style: TextStyle(fontSize: 18, color: Colors.grey),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: notificationVM.notifications.length,
+      itemBuilder: (context, index) {
+        final notification = notificationVM.notifications[index];
+        return Card(
+          margin: const EdgeInsets.only(bottom: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: ListTile(
+            leading: CircleAvatar(
+              backgroundColor: notification.isRead
+                  ? Colors.grey[300]
+                  : const Color(0xFF800020),
+              child: Icon(
+                _getNotificationIcon(notification.notificationType),
+                color: notification.isRead ? Colors.grey : Colors.white,
               ),
-            );
-          }
-
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: notificationVM.notifications.length,
-            itemBuilder: (context, index) {
-              final notification = notificationVM.notifications[index];
-              return Card(
-                margin: const EdgeInsets.only(bottom: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+            ),
+            title: Text(
+              notification.title,
+              style: TextStyle(
+                fontWeight: notification.isRead
+                    ? FontWeight.normal
+                    : FontWeight.bold,
+              ),
+            ),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 4),
+                Text(notification.body),
+                const SizedBox(height: 4),
+                Text(
+                  notification.formattedDate,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey,
+                  ),
                 ),
-                child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: notification.isRead
-                        ? Colors.grey[300]
-                        : const Color(0xFF800020),
-                    child: Icon(
-                      _getNotificationIcon(notification.notificationType),
-                      color: notification.isRead ? Colors.grey : Colors.white,
+              ],
+            ),
+            isThreeLine: true,
+            onTap: () async {
+              await notificationVM.markAsRead(notification.id);
+              if (!context.mounted) return;
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: Text(notification.title),
+                  content: Text(notification.body),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Close'),
                     ),
-                  ),
-                  title: Text(
-                    notification.title,
-                    style: TextStyle(
-                      fontWeight: notification.isRead
-                          ? FontWeight.normal
-                          : FontWeight.bold,
-                    ),
-                  ),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 4),
-                      Text(notification.body),
-                      const SizedBox(height: 4),
-                      Text(
-                        notification.formattedDate,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ],
-                  ),
-                  isThreeLine: true,
-                  onTap: () async {
-                    await notificationVM.markAsRead(notification.id);
-                    if (!context.mounted) return;
-                    showDialog(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: Text(notification.title),
-                        content: Text(notification.body),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text('Close'),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
+                  ],
                 ),
               );
             },
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -1059,7 +1069,7 @@ class _ParentCalendarPageState extends State<ParentCalendarPage> {
 
   // Calendar events from Firestore
   Map<DateTime, List<Map<String, dynamic>>> _events = {};
-  bool _isLoading = true;
+  final bool _isLoading = true;
   String? _errorMessage;
 
   @override

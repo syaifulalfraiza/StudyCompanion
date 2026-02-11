@@ -5,7 +5,7 @@ import 'package:studycompanion_app/services/sample_announcement_data.dart';
 class AnnouncementService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   static const String _collectionName = 'announcements';
-  static bool useSampleData = true; // Toggle for testing
+  static bool useSampleData = false; // Toggle for testing (Firestore enabled by default)
 
   /// Get all published announcements from Firestore or sample data
   static Future<List<AnnouncementModel>> getPublishedAnnouncements() async {

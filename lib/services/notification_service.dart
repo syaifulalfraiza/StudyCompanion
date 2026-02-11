@@ -8,7 +8,7 @@ class NotificationService {
       FirebaseMessaging.instance;
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   static const String _notificationsCollection = 'notifications';
-  static bool useSampleData = true; // Toggle for testing
+  static bool useSampleData = false; // Toggle for testing (Firestore enabled by default)
 
   /// Initialize Firebase Messaging
   static Future<void> initializeMessaging() async {

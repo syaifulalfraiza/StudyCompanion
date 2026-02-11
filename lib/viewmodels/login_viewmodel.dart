@@ -6,6 +6,7 @@ import 'package:studycompanion_app/views/teacher_dashboard.dart';
 import 'package:studycompanion_app/views/parent_dashboard.dart';
 import 'package:studycompanion_app/views/admin_dashboard.dart';
 import 'package:studycompanion_app/core/user_session.dart';
+import 'package:studycompanion_app/services/sample_teacher_data.dart';
 
 /// A self-contained login screen widget that mirrors the provided HTML layout.
 /// Place this file in `lib/viewmodels/login_viewmodel.dart` and use
@@ -21,6 +22,7 @@ class _LoginViewModelState extends State<LoginViewModel> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _useSampleData = false; // Demo mode toggle
 
   final List<String> _roles = ['Student', 'Parent', 'Teacher', 'Admin'];
   int _selectedRoleIndex = 0;
@@ -32,6 +34,70 @@ class _LoginViewModelState extends State<LoginViewModel> {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  /// Try to authenticate with sample data (for testing/demo purposes)
+  Future<bool> _trySampleDataLogin(
+    String email,
+    String password,
+    String selectedRole,
+  ) async {
+    // Only support teacher sample data for now
+    if (selectedRole != 'teacher') {
+      return false;
+    }
+
+    // Check if email matches any sample teacher
+    final allTeachers = SampleTeacherData.getAllTeachers();
+    final matchedTeacher = allTeachers.firstWhere(
+      (t) => t['email'] == email,
+      orElse: () => {},
+    );
+
+    if (matchedTeacher.isEmpty) {
+      return false; // Email not found in sample data
+    }
+
+    // Check password (for demo purposes, use 'password123')
+    if (password != 'password123') {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Invalid password. Use "password123" for demo accounts.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return true; // Handled, but invalid
+    }
+
+    // Successful sample data login
+    if (mounted) {
+      // Store user session
+      UserSession.userId = matchedTeacher['id'] as String;
+      UserSession.name = matchedTeacher['name'] as String;
+      UserSession.email = matchedTeacher['email'] as String;
+      UserSession.role = 'teacher';
+      UserSession.phone = matchedTeacher['phone'] as String? ?? '';
+
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Welcome, ${matchedTeacher['name']}! (Demo Mode)'),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      // Navigate to teacher dashboard
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const TeacherDashboard(),
+        ),
+      );
+    }
+
+    return true; // Successfully handled
   }
 
   @override
@@ -336,6 +402,33 @@ class _LoginViewModelState extends State<LoginViewModel> {
                               ),
                             ),
 
+                            // Demo mode toggle
+                            Row(
+                              children: [
+                                Checkbox(
+                                  value: _useSampleData,
+                                  onChanged: (value) {
+                                    setState(() => _useSampleData = value ?? false);
+                                  },
+                                  activeColor: _primary,
+                                ),
+                                Expanded(
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      setState(() => _useSampleData = !_useSampleData);
+                                    },
+                                    child: Text(
+                                      'Use Demo Mode (Sample Data)',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: isDark ? Colors.grey[400] : Colors.grey[700],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+
                             const SizedBox(height: 10),
 
                             // Sign In button
@@ -370,6 +463,18 @@ class _LoginViewModelState extends State<LoginViewModel> {
                                   final selectedRole =
                                       _roles[_selectedRoleIndex].toLowerCase();
 
+                                  // Try sample data authentication first if demo mode enabled
+                                  // or if teacher role selected (for testing purposes)
+                                  if (_useSampleData || selectedRole == 'teacher') {
+                                    final sampleLoginSuccess = await _trySampleDataLogin(
+                                      email,
+                                      password,
+                                      selectedRole,
+                                    );
+                                    if (sampleLoginSuccess) return;
+                                  }
+
+                                  // Fall back to Firebase authentication
                                   try {
                                     await FirebaseAuth.instance
                                         .signInWithEmailAndPassword(

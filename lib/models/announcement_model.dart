@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class AnnouncementModel {
   final String id;
   final String title;
@@ -15,17 +17,28 @@ class AnnouncementModel {
     this.isPublished = true,
   });
 
-  factory AnnouncementModel.fromJson(Map<String, dynamic> json) {
+  factory AnnouncementModel.fromJson(Map<String, dynamic> json, {String? docId}) {
     return AnnouncementModel(
-      id: json['id'] as String? ?? '',
+      id: (json['id'] ?? docId ?? '').toString(),
       title: json['title'] as String? ?? '',
       message: json['message'] as String? ?? '',
       createdBy: json['createdBy'] as String? ?? 'Admin',
-      date: json['date'] != null
-          ? DateTime.parse(json['date'] as String)
-          : DateTime.now(),
+      date: _parseDate(json['date']),
       isPublished: json['isPublished'] as bool? ?? true,
     );
+  }
+
+  static DateTime _parseDate(dynamic value) {
+    if (value is Timestamp) {
+      return value.toDate();
+    }
+    if (value is DateTime) {
+      return value;
+    }
+    if (value is String) {
+      return DateTime.tryParse(value) ?? DateTime.now();
+    }
+    return DateTime.now();
   }
 
   Map<String, dynamic> toJson() {

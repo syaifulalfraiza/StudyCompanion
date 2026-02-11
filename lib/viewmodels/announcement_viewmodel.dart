@@ -1,12 +1,16 @@
 import 'package:flutter/foundation.dart';
 import 'package:studycompanion_app/models/announcement_model.dart';
 import 'package:studycompanion_app/services/announcement_service.dart';
+import 'package:studycompanion_app/services/firestore_student_service.dart';
 
 class AnnouncementViewModel extends ChangeNotifier {
   List<AnnouncementModel> _announcements = [];
   final Set<String> _readAnnouncementIds = {};
   bool _isLoading = false;
   String? _error;
+  bool _useFirestore = true; // Use Firestore by default
+  
+  final FirestoreStudentService _firestoreService = FirestoreStudentService();
 
   AnnouncementViewModel() {
     _initializeAnnouncements();
@@ -25,12 +29,36 @@ class AnnouncementViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final data = await AnnouncementService.getPublishedAnnouncements();
-      _announcements = data;
+      List<Map<String, dynamic>> announcementMaps;
+      
+      // Use Firestore if enabled
+      if (_useFirestore) {
+        announcementMaps = await _firestoreService.getPublishedAnnouncements();
+      } else {
+        // Fallback to AnnouncementService
+        final data = await AnnouncementService.getPublishedAnnouncements();
+        _announcements = data;
+        _error = null;
+        _isLoading = false;
+        notifyListeners();
+        return;
+      }
+      
+      // Convert Firestore maps to AnnouncementModel
+      _announcements = announcementMaps
+          .map((map) => AnnouncementModel.fromJson(map))
+          .toList();
       _error = null;
     } catch (e) {
       _error = 'Failed to load announcements: $e';
       print('Error loading announcements: $e');
+      // Fallback to sample data
+      try {
+        final data = await AnnouncementService.getPublishedAnnouncements();
+        _announcements = data;
+      } catch (e2) {
+        print('Fallback also failed: $e2');
+      }
     }
 
     _isLoading = false;
@@ -80,4 +108,15 @@ class AnnouncementViewModel extends ChangeNotifier {
     final sorted = sortedAnnouncements;
     return sorted.take(5).toList();
   }
+
+  /// Toggle between Firestore and fallback mode
+  void setFirestoreMode(bool useFirestore) {
+    if (_useFirestore != useFirestore) {
+      _useFirestore = useFirestore;
+      _initializeAnnouncements();
+    }
+  }
+
+  /// Check if using Firestore
+  bool get isUsingFirestore => _useFirestore;
 }

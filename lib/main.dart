@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:studycompanion_app/viewmodels/login_viewmodel.dart';
 import 'package:studycompanion_app/views/parent_dashboard.dart';
+import 'package:studycompanion_app/views/teacher_dashboard.dart';
 import 'package:studycompanion_app/services/notification_service.dart';
 
 void main() async {
@@ -25,6 +26,7 @@ class MyApp extends StatelessWidget {
       routes: {
         '/': (context) => const LoginViewModel(),
         '/parentDashboard': (context) => const ParentDashboard(),
+        '/teacherDashboard': (context) => const TeacherDashboard(),
       },
 
       title: 'Flutter Demo',
