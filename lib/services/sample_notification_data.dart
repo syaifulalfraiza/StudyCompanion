@@ -128,7 +128,7 @@ class SampleNotificationData {
       NotificationModel(
         id: 'parent_notif_1',
         title: 'Child\'s Progress: 70% Task Completion',
-        body: 'Your child Nurul Izzah has completed 70% of assigned tasks. Great progress!',
+        body: 'Your child has completed 70% of assigned tasks. Great progress!',
         parentId: parentId,
         notificationType: 'alert',
         createdAt: now.subtract(const Duration(hours: 5)),
@@ -136,8 +136,8 @@ class SampleNotificationData {
       ),
       NotificationModel(
         id: 'parent_notif_2',
-        title: 'Achievement: Nurul Izzah - Task Master',
-        body: 'Your child has unlocked the "Task Master" achievement. She has completed 5 tasks successfully!',
+        title: 'Achievement: Task Master',
+        body: 'Your child has unlocked the "Task Master" achievement. They have completed 5 tasks successfully!',
         parentId: parentId,
         notificationType: 'achievement',
         createdAt: now.subtract(const Duration(days: 1)),

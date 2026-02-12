@@ -81,8 +81,33 @@ class AssignmentModel {
     if (value is DateTime) {
       return value;
     }
+    if (value is Map) {
+      final seconds = value['seconds'] ?? value['_seconds'];
+      final nanoseconds = value['nanoseconds'] ?? value['_nanoseconds'];
+      if (seconds is int && nanoseconds is int) {
+        return DateTime.fromMillisecondsSinceEpoch(
+          seconds * 1000 + (nanoseconds ~/ 1000000),
+          isUtc: true,
+        ).toLocal();
+      }
+    }
     if (value is String) {
-      return DateTime.tryParse(value) ?? DateTime.now();
+      final parsed = DateTime.tryParse(value);
+      if (parsed != null) {
+        return parsed;
+      }
+      final match = RegExp(r'Timestamp\(seconds=(\d+),\s*nanoseconds=(\d+)\)')
+          .firstMatch(value);
+      if (match != null) {
+        final seconds = int.tryParse(match.group(1) ?? '');
+        final nanoseconds = int.tryParse(match.group(2) ?? '');
+        if (seconds != null && nanoseconds != null) {
+          return DateTime.fromMillisecondsSinceEpoch(
+            seconds * 1000 + (nanoseconds ~/ 1000000),
+            isUtc: true,
+          ).toLocal();
+        }
+      }
     }
     return DateTime.now();
   }

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:studycompanion_app/views/student_dashboard.dart';
-import 'package:studycompanion_app/views/teacher_dashboard.dart';
+import 'package:studycompanion_app/views/new_teacher_dashboard.dart';
 import 'package:studycompanion_app/views/parent_dashboard.dart';
 import 'package:studycompanion_app/views/admin_dashboard.dart';
 import 'package:studycompanion_app/core/user_session.dart';
@@ -19,15 +19,13 @@ class LoginViewModel extends StatefulWidget {
 }
 
 class _LoginViewModelState extends State<LoginViewModel> {
+  static const _primary = Color(0xFF800020);
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _obscurePassword = true;
-  bool _useSampleData = false; // Demo mode toggle
 
   final List<String> _roles = ['Student', 'Parent', 'Teacher', 'Admin'];
   int _selectedRoleIndex = 0;
-
-  Color get _primary => const Color(0xFFD41121);
 
   @override
   void dispose() {
@@ -83,7 +81,7 @@ class _LoginViewModelState extends State<LoginViewModel> {
       // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Welcome, ${matchedTeacher['name']}! (Demo Mode)'),
+          content: Text('Welcome, ${matchedTeacher['name']}!'),
           backgroundColor: Colors.green,
         ),
       );
@@ -92,7 +90,7 @@ class _LoginViewModelState extends State<LoginViewModel> {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (_) => const TeacherDashboard(),
+          builder: (_) => const NewTeacherDashboard(),
         ),
       );
     }
@@ -402,33 +400,6 @@ class _LoginViewModelState extends State<LoginViewModel> {
                               ),
                             ),
 
-                            // Demo mode toggle
-                            Row(
-                              children: [
-                                Checkbox(
-                                  value: _useSampleData,
-                                  onChanged: (value) {
-                                    setState(() => _useSampleData = value ?? false);
-                                  },
-                                  activeColor: _primary,
-                                ),
-                                Expanded(
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      setState(() => _useSampleData = !_useSampleData);
-                                    },
-                                    child: Text(
-                                      'Use Demo Mode (Sample Data)',
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        color: isDark ? Colors.grey[400] : Colors.grey[700],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-
                             const SizedBox(height: 10),
 
                             // Sign In button
@@ -463,9 +434,8 @@ class _LoginViewModelState extends State<LoginViewModel> {
                                   final selectedRole =
                                       _roles[_selectedRoleIndex].toLowerCase();
 
-                                  // Try sample data authentication first if demo mode enabled
-                                  // or if teacher role selected (for testing purposes)
-                                  if (_useSampleData || selectedRole == 'teacher') {
+                                  // Try sample data authentication first if teacher role selected (for testing purposes)
+                                  if (selectedRole == 'teacher') {
                                     final sampleLoginSuccess = await _trySampleDataLogin(
                                       email,
                                       password,
@@ -553,7 +523,7 @@ class _LoginViewModelState extends State<LoginViewModel> {
 
                                       case 'teacher':
                                         destinationScreen =
-                                            const TeacherDashboard();
+                                            const NewTeacherDashboard();
                                         break;
 
                                       case 'parent':

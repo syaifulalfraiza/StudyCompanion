@@ -11,6 +11,8 @@ import 'package:studycompanion_app/viewmodels/parent_dashboard_viewmodel.dart';
 import 'package:studycompanion_app/viewmodels/notification_viewmodel.dart';
 import 'package:studycompanion_app/viewmodels/announcement_viewmodel.dart';
 import 'package:studycompanion_app/services/parent_calendar_service.dart';
+import 'package:studycompanion_app/views/parent_messages_page.dart';
+import 'package:studycompanion_app/views/admin/firestore_inspector_page.dart';
 
 class ParentDashboard extends StatefulWidget {
   const ParentDashboard({super.key});
@@ -39,9 +41,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
             isStudent: false,
           ),
         ),
-        ChangeNotifierProvider(
-          create: (_) => AnnouncementViewModel(),
-        ),
+        ChangeNotifierProvider(create: (_) => AnnouncementViewModel()),
       ],
       child: Builder(
         builder: (context) {
@@ -58,25 +58,31 @@ class _ParentDashboardState extends State<ParentDashboard> {
           ];
           return Scaffold(
             body: pages[_selectedIndex],
-        bottomNavigationBar: BottomNavigationBar(
-          currentIndex: _selectedIndex,
-          selectedItemColor: const Color(0xFF800020),
-          unselectedItemColor: Colors.grey,
-          onTap: _onItemTapped,
-          items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: "Home"),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.notifications),
-              label: "Notifications",
+            bottomNavigationBar: BottomNavigationBar(
+              currentIndex: _selectedIndex,
+              selectedItemColor: const Color(0xFF800020),
+              unselectedItemColor: Colors.grey,
+              onTap: _onItemTapped,
+              items: const [
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.dashboard),
+                  label: "Home",
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.notifications),
+                  label: "Notifications",
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.calendar_month),
+                  label: "Calendar",
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.person),
+                  label: "Profile",
+                ),
+              ],
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.calendar_month),
-              label: "Calendar",
-            ),
-            BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
-          ],
-        ),
-      );
+          );
         },
       ),
     );
@@ -217,9 +223,7 @@ class ParentHomePage extends StatelessWidget {
               ),
             ],
           ),
-          body: SafeArea(
-            child: _buildHomePageContent(viewModel, context),
-          ),
+          body: SafeArea(child: _buildHomePageContent(viewModel, context)),
         );
       },
     );
@@ -253,14 +257,14 @@ class ParentHomePage extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          /// 👋 Greeting with enhanced styling
+          /// Greeting with enhanced styling
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "Welcome, ${UserSession.name.isEmpty ? 'Parent' : UserSession.name.split(' ').first} 👋",
+                  "Welcome, ${UserSession.name.isEmpty ? 'Parent' : UserSession.name.split(' ').first}",
                   style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -270,10 +274,7 @@ class ParentHomePage extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   "Here's your family's learning summary",
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey[600],
-                  ),
+                  style: TextStyle(fontSize: 13, color: Colors.grey[600]),
                 ),
               ],
             ),
@@ -312,7 +313,10 @@ class ParentHomePage extends StatelessWidget {
                         style: TextStyle(color: Colors.white70, fontSize: 12),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.white24,
                           borderRadius: BorderRadius.circular(12),
@@ -341,7 +345,10 @@ class ParentHomePage extends StatelessWidget {
                     ClipRRect(
                       borderRadius: BorderRadius.circular(8),
                       child: LinearProgressIndicator(
-                        value: (viewModel.selectedChildProgress / 100).clamp(0, 1),
+                        value: (viewModel.selectedChildProgress / 100).clamp(
+                          0,
+                          1,
+                        ),
                         minHeight: 8,
                         backgroundColor: Colors.white24,
                         color: Colors.white,
@@ -440,7 +447,12 @@ class ParentHomePage extends StatelessWidget {
                   Icons.message,
                   const Color(0xFF00BFA5),
                   () {
-                    // TODO: Navigate to messages
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const ParentMessagesPage(),
+                      ),
+                    );
                   },
                 ),
                 _buildActionCard(
@@ -487,7 +499,10 @@ class ParentHomePage extends StatelessWidget {
                 viewModel.selectChild(child.id);
               },
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 child: Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -586,53 +601,48 @@ class ParentHomePage extends StatelessWidget {
           const SizedBox(height: 24),
 
           /// 📚 TODAY'S FOCUS - Enhanced styling
-          if (viewModel.selectedChild != null) ...
-            [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "Today's Focus",
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
+          if (viewModel.selectedChild != null) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Today's Focus",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
                     ),
-                    const SizedBox(height: 12),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
               ),
-              _buildFocusCard(
-                "📚 Homework",
-                viewModel.selectedChild!.homework,
-                Colors.blue,
-              ),
-              _buildFocusCard(
-                "📝 Quiz",
-                viewModel.selectedChild!.quiz,
-                Colors.orange,
-              ),
-              _buildFocusCard(
-                "📌 Reminder",
-                viewModel.selectedChild!.reminder,
-                Colors.green,
-              ),
-              const SizedBox(height: 24),
-            ]
-          else ...[
+            ),
+            _buildFocusCard(
+              "📚 Homework",
+              viewModel.selectedChild!.homework,
+              Colors.blue,
+            ),
+            _buildFocusCard(
+              "📝 Quiz",
+              viewModel.selectedChild!.quiz,
+              Colors.orange,
+            ),
+            _buildFocusCard(
+              "📌 Reminder",
+              viewModel.selectedChild!.reminder,
+              Colors.green,
+            ),
+            const SizedBox(height: 24),
+          ] else ...[
             Padding(
               padding: const EdgeInsets.all(16),
               child: Text(
                 "Select a child to see today's learning focus",
-                style: TextStyle(
-                  color: Colors.grey[600],
-                  fontSize: 14,
-                ),
+                style: TextStyle(color: Colors.grey[600], fontSize: 14),
               ),
-            )
+            ),
           ],
 
           const SizedBox(height: 20),
@@ -686,7 +696,9 @@ class ParentHomePage extends StatelessWidget {
                 );
               }
               return Column(
-                children: announcementVM.announcements.take(2).map((announcement) {
+                children: announcementVM.announcements.take(2).map((
+                  announcement,
+                ) {
                   return DashboardCard(
                     title: announcement.title,
                     subtitle: announcement.content,
@@ -851,9 +863,7 @@ class ParentHomePage extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border(
-            left: BorderSide(color: accentColor, width: 4),
-          ),
+          border: Border(left: BorderSide(color: accentColor, width: 4)),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.05),
@@ -876,10 +886,7 @@ class ParentHomePage extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               subtitle,
-              style: TextStyle(
-                fontSize: 13,
-                color: Colors.grey[700],
-              ),
+              style: TextStyle(fontSize: 13, color: Colors.grey[700]),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
@@ -949,7 +956,10 @@ class ParentNotificationsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildNotificationBody(BuildContext context, NotificationViewModel notificationVM) {
+  Widget _buildNotificationBody(
+    BuildContext context,
+    NotificationViewModel notificationVM,
+  ) {
     if (notificationVM.isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -1006,10 +1016,7 @@ class ParentNotificationsPage extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   notification.formattedDate,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey,
-                  ),
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
                 ),
               ],
             ),
@@ -1084,6 +1091,7 @@ class _ParentCalendarPageState extends State<ParentCalendarPage> {
     return StreamBuilder<List<Map<String, dynamic>>>(
       stream: ParentCalendarService.streamParentEvents(
         parentId: UserSession.userId,
+        role: UserSession.role,
       ),
       builder: (context, snapshot) {
         // Handle loading and errors
@@ -1102,9 +1110,7 @@ class _ParentCalendarPageState extends State<ParentCalendarPage> {
               ),
               iconTheme: const IconThemeData(color: Colors.white),
             ),
-            body: const Center(
-              child: CircularProgressIndicator(),
-            ),
+            body: const Center(child: CircularProgressIndicator()),
           );
         }
 
@@ -1123,9 +1129,7 @@ class _ParentCalendarPageState extends State<ParentCalendarPage> {
               ),
               iconTheme: const IconThemeData(color: Colors.white),
             ),
-            body: Center(
-              child: Text('Error: ${snapshot.error}'),
-            ),
+            body: Center(child: Text('Error: ${snapshot.error}')),
           );
         }
 
@@ -1158,130 +1162,136 @@ class _ParentCalendarPageState extends State<ParentCalendarPage> {
             ],
           ),
           body: Column(
-        children: [
-          // Calendar Header with Month Navigation
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: primary,
-              borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(24),
-                bottomRight: Radius.circular(24),
-              ),
-            ),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.chevron_left, color: Colors.white),
-                      onPressed: () {
-                        setState(() {
-                          _focusedMonth = DateTime(
-                            _focusedMonth.year,
-                            _focusedMonth.month - 1,
-                          );
-                        });
-                      },
-                    ),
-                    Text(
-                      _formatMonthYear(_focusedMonth),
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.chevron_right, color: Colors.white),
-                      onPressed: () {
-                        setState(() {
-                          _focusedMonth = DateTime(
-                            _focusedMonth.year,
-                            _focusedMonth.month + 1,
-                          );
-                        });
-                      },
-                    ),
-                  ],
+            children: [
+              // Calendar Header with Month Navigation
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: primary,
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(24),
+                    bottomRight: Radius.circular(24),
+                  ),
                 ),
-                const SizedBox(height: 8),
-                _buildCalendarGrid(),
-              ],
-            ),
-          ),
-
-          // Events List
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                child: Column(
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
+                        IconButton(
+                          icon: const Icon(
+                            Icons.chevron_left,
+                            color: Colors.white,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _focusedMonth = DateTime(
+                                _focusedMonth.year,
+                                _focusedMonth.month - 1,
+                              );
+                            });
+                          },
+                        ),
                         Text(
-                          _formatDateFull(_selectedDate),
+                          _formatMonthYear(_focusedMonth),
                           style: const TextStyle(
-                            fontSize: 18,
+                            fontSize: 20,
                             fontWeight: FontWeight.bold,
+                            color: Colors.white,
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          _getEventCountText(),
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey,
+                        IconButton(
+                          icon: const Icon(
+                            Icons.chevron_right,
+                            color: Colors.white,
                           ),
+                          onPressed: () {
+                            setState(() {
+                              _focusedMonth = DateTime(
+                                _focusedMonth.year,
+                                _focusedMonth.month + 1,
+                              );
+                            });
+                          },
                         ),
                       ],
                     ),
-                    TextButton.icon(
-                      onPressed: () {
-                        _showAddOrEditEventDialog(date: _selectedDate);
-                      },
-                      icon: const Icon(Icons.add),
-                      label: const Text('Add'),
-                    ),
+                    const SizedBox(height: 8),
+                    _buildCalendarGrid(),
                   ],
                 ),
-                const SizedBox(height: 16),
-                ..._getEventsForDate(_selectedDate).map((event) {
-                  return _buildEventCard(event);
-                }),
-                if (_getEventsForDate(_selectedDate).isEmpty)
-                  Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(32),
-                      child: Column(
-                        children: [
-                          Icon(
-                            Icons.event_busy,
-                            size: 64,
-                            color: Colors.grey[400],
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'No events scheduled',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.grey[600],
+              ),
+
+              // Events List
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _formatDateFull(_selectedDate),
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
+                            const SizedBox(height: 4),
+                            Text(
+                              _getEventCountText(),
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                        TextButton.icon(
+                          onPressed: () {
+                            _showAddOrEditEventDialog(date: _selectedDate);
+                          },
+                          icon: const Icon(Icons.add),
+                          label: const Text('Add'),
+                        ),
+                      ],
                     ),
-                  ),
-              ],
-            ),
+                    const SizedBox(height: 16),
+                    ..._getEventsForDate(_selectedDate).map((event) {
+                      return _buildEventCard(event);
+                    }),
+                    if (_getEventsForDate(_selectedDate).isEmpty)
+                      Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(32),
+                          child: Column(
+                            children: [
+                              Icon(
+                                Icons.event_busy,
+                                size: 64,
+                                color: Colors.grey[400],
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'No events scheduled',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
-    );
+        );
       },
     );
   }
@@ -1294,7 +1304,11 @@ class _ParentCalendarPageState extends State<ParentCalendarPage> {
 
     for (final event in flatEvents) {
       final eventDate = event['date'] as DateTime;
-      final normalizedDate = DateTime(eventDate.year, eventDate.month, eventDate.day);
+      final normalizedDate = DateTime(
+        eventDate.year,
+        eventDate.month,
+        eventDate.day,
+      );
 
       if (!eventsMap.containsKey(normalizedDate)) {
         eventsMap[normalizedDate] = [];
@@ -1307,10 +1321,16 @@ class _ParentCalendarPageState extends State<ParentCalendarPage> {
 
   /// Build calendar grid with dates
   Widget _buildCalendarGrid() {
-    final daysInMonth =
-        DateTime(_focusedMonth.year, _focusedMonth.month + 1, 0).day;
-    final firstDayOfMonth =
-        DateTime(_focusedMonth.year, _focusedMonth.month, 1);
+    final daysInMonth = DateTime(
+      _focusedMonth.year,
+      _focusedMonth.month + 1,
+      0,
+    ).day;
+    final firstDayOfMonth = DateTime(
+      _focusedMonth.year,
+      _focusedMonth.month,
+      1,
+    );
     final startingWeekday = firstDayOfMonth.weekday % 7;
 
     return Column(
@@ -1319,18 +1339,20 @@ class _ParentCalendarPageState extends State<ParentCalendarPage> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: ['S', 'M', 'T', 'W', 'T', 'F', 'S']
-              .map((day) => SizedBox(
-                    width: 40,
-                    child: Center(
-                      child: Text(
-                        day,
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontWeight: FontWeight.bold,
-                        ),
+              .map(
+                (day) => SizedBox(
+                  width: 40,
+                  child: Center(
+                    child: Text(
+                      day,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                  ))
+                  ),
+                ),
+              )
               .toList(),
         ),
         const SizedBox(height: 8),
@@ -1350,12 +1372,16 @@ class _ParentCalendarPageState extends State<ParentCalendarPage> {
               return const SizedBox();
             }
 
-            final date =
-                DateTime(_focusedMonth.year, _focusedMonth.month, dayNumber);
+            final date = DateTime(
+              _focusedMonth.year,
+              _focusedMonth.month,
+              dayNumber,
+            );
             final isSelected = _isSameDay(date, _selectedDate);
             final isToday = _isSameDay(date, DateTime.now());
-            final hasEvents = _events
-              .containsKey(DateTime(date.year, date.month, date.day));
+            final hasEvents = _events.containsKey(
+              DateTime(date.year, date.month, date.day),
+            );
 
             return GestureDetector(
               onTap: () {
@@ -1368,8 +1394,8 @@ class _ParentCalendarPageState extends State<ParentCalendarPage> {
                   color: isSelected
                       ? Colors.white
                       : isToday
-                          ? Colors.white24
-                          : Colors.transparent,
+                      ? Colors.white24
+                      : Colors.transparent,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Stack(
@@ -1443,7 +1469,11 @@ class _ParentCalendarPageState extends State<ParentCalendarPage> {
                     color: eventStyle.color.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Icon(eventStyle.icon, color: eventStyle.color, size: 24),
+                  child: Icon(
+                    eventStyle.icon,
+                    color: eventStyle.color,
+                    size: 24,
+                  ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -1460,7 +1490,11 @@ class _ParentCalendarPageState extends State<ParentCalendarPage> {
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          Icon(Icons.access_time, size: 14, color: Colors.grey[600]),
+                          Icon(
+                            Icons.access_time,
+                            size: 14,
+                            color: Colors.grey[600],
+                          ),
                           const SizedBox(width: 4),
                           Text(
                             _convertTimeToString(event['time']),
@@ -1537,6 +1571,11 @@ class _ParentCalendarPageState extends State<ParentCalendarPage> {
             ),
             TextButton(
               onPressed: () {
+                if (!_canModifyParentEvent(event)) {
+                  Navigator.pop(context);
+                  _showPermissionDenied();
+                  return;
+                }
                 Navigator.pop(context);
                 _showAddOrEditEventDialog(date: date, event: event);
               },
@@ -1544,6 +1583,11 @@ class _ParentCalendarPageState extends State<ParentCalendarPage> {
             ),
             TextButton(
               onPressed: () {
+                if (!_canModifyParentEvent(event)) {
+                  Navigator.pop(context);
+                  _showPermissionDenied();
+                  return;
+                }
                 _deleteEvent(date, event['id']);
                 Navigator.pop(context);
               },
@@ -1562,15 +1606,35 @@ class _ParentCalendarPageState extends State<ParentCalendarPage> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            label,
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
+          Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(width: 8),
-          Expanded(
-            child: Text(value),
-          ),
+          Expanded(child: Text(value)),
         ],
+      ),
+    );
+  }
+
+  bool _canModifyParentEvent(Map<String, dynamic> event) {
+    final userId = UserSession.userId;
+    if (userId.isEmpty) return false;
+
+    final visibility = event['visibilityScope'] ?? 'private';
+    if (visibility != 'private') return false;
+
+    final createdByUserId = event['createdByUserId'];
+    if (createdByUserId == userId) return true;
+
+    final parentId = event['parentId'];
+    if (parentId == userId) return true;
+
+    final audience = (event['audienceUserIds'] as List?)?.cast<String>() ?? [];
+    return audience.contains(userId);
+  }
+
+  void _showPermissionDenied() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('You can only edit or delete your private reminders.'),
       ),
     );
   }
@@ -1587,8 +1651,8 @@ class _ParentCalendarPageState extends State<ParentCalendarPage> {
     return count == 0
         ? 'No events'
         : count == 1
-            ? '1 event'
-            : '$count events';
+        ? '1 event'
+        : '$count events';
   }
 
   /// Check if two dates are the same
@@ -1609,10 +1673,28 @@ class _ParentCalendarPageState extends State<ParentCalendarPage> {
 
   /// Format date as "Monday, February 15"
   String _formatDateFull(DateTime date) {
-    final days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    final days = [
+      'Sunday',
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+    ];
     final months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
     ];
     return '${days[date.weekday % 7]}, ${months[date.month - 1]} ${date.day}';
   }
@@ -1620,8 +1702,18 @@ class _ParentCalendarPageState extends State<ParentCalendarPage> {
   /// Format date as "February 2026"
   String _formatMonthYear(DateTime date) {
     final months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
     ];
     return '${months[date.month - 1]} ${date.year}';
   }
@@ -1631,7 +1723,11 @@ class _ParentCalendarPageState extends State<ParentCalendarPage> {
     final today = DateTime.now();
     final todayNormalized = DateTime(today.year, today.month, today.day);
     final eventDates = _events.keys
-        .where((date) => date.year == todayNormalized.year && date.month == todayNormalized.month)
+        .where(
+          (date) =>
+              date.year == todayNormalized.year &&
+              date.month == todayNormalized.month,
+        )
         .toList();
 
     if (eventDates.isEmpty) return todayNormalized;
@@ -1689,9 +1785,12 @@ class _ParentCalendarPageState extends State<ParentCalendarPage> {
     Map<String, dynamic>? event,
   }) {
     final titleController = TextEditingController(text: event?['title'] ?? '');
-    final timeController = TextEditingController(text: _convertTimeToString(event?['time']));
-    final descriptionController =
-        TextEditingController(text: event?['description'] ?? '');
+    final timeController = TextEditingController(
+      text: _convertTimeToString(event?['time']),
+    );
+    final descriptionController = TextEditingController(
+      text: event?['description'] ?? '',
+    );
     String selectedType = event?['type'] ?? 'school_event';
 
     showDialog(
@@ -1715,10 +1814,19 @@ class _ParentCalendarPageState extends State<ParentCalendarPage> {
               DropdownButtonFormField<String>(
                 initialValue: selectedType,
                 items: const [
-                  DropdownMenuItem(value: 'school_event', child: Text('School Event')),
-                  DropdownMenuItem(value: 'examination', child: Text('Examination')),
+                  DropdownMenuItem(
+                    value: 'school_event',
+                    child: Text('School Event'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'examination',
+                    child: Text('Examination'),
+                  ),
                   DropdownMenuItem(value: 'deadline', child: Text('Deadline')),
-                  DropdownMenuItem(value: 'parent_teaching', child: Text('Parent-Teacher')),
+                  DropdownMenuItem(
+                    value: 'parent_teaching',
+                    child: Text('Parent-Teacher'),
+                  ),
                   DropdownMenuItem(value: 'holiday', child: Text('Holiday')),
                   DropdownMenuItem(value: 'reminder', child: Text('Reminder')),
                 ],
@@ -1749,12 +1857,15 @@ class _ParentCalendarPageState extends State<ParentCalendarPage> {
               final time = timeController.text.trim();
               if (title.isEmpty || time.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Please fill in title and time.')),
+                  const SnackBar(
+                    content: Text('Please fill in title and time.'),
+                  ),
                 );
                 return;
               }
               final eventData = {
-                'id': event?['id'] ??
+                'id':
+                    event?['id'] ??
                     DateTime.now().microsecondsSinceEpoch.toString(),
                 'title': title,
                 'time': time,
@@ -1779,44 +1890,50 @@ class _ParentCalendarPageState extends State<ParentCalendarPage> {
   void _addEvent(DateTime date, Map<String, dynamic> event) {
     // Save to Firestore
     ParentCalendarService.createEvent(
-      parentId: UserSession.userId,
-      title: event['title'] ?? '',
-      time: event['time'] ?? '',
-      type: event['type'] ?? 'school_event',
-      date: date,
-      description: event['description'],
-      childName: event['childName'],
-    ).then((_) {
-      _showSuccessMessage('Event added successfully');
-    }).catchError((error) {
-      _showErrorMessage('Failed to add event: $error');
-    });
+          parentId: UserSession.userId,
+          title: event['title'] ?? '',
+          time: event['time'] ?? '',
+          type: event['type'] ?? 'school_event',
+          date: date,
+          description: event['description'],
+          childName: event['childName'],
+        )
+        .then((_) {
+          _showSuccessMessage('Event added successfully');
+        })
+        .catchError((error) {
+          _showErrorMessage('Failed to add event: $error');
+        });
   }
 
   void _updateEvent(DateTime date, Map<String, dynamic> updatedEvent) {
     // Update in Firestore
     ParentCalendarService.updateEvent(
-      eventId: updatedEvent['id'] ?? '',
-      title: updatedEvent['title'] ?? '',
-      time: updatedEvent['time'] ?? '',
-      type: updatedEvent['type'] ?? 'school_event',
-      date: date,
-      description: updatedEvent['description'],
-      childName: updatedEvent['childName'],
-    ).then((_) {
-      _showSuccessMessage('Event updated successfully');
-    }).catchError((error) {
-      _showErrorMessage('Failed to update event: $error');
-    });
+          eventId: updatedEvent['id'] ?? '',
+          title: updatedEvent['title'] ?? '',
+          time: updatedEvent['time'] ?? '',
+          type: updatedEvent['type'] ?? 'school_event',
+          date: date,
+          description: updatedEvent['description'],
+          childName: updatedEvent['childName'],
+        )
+        .then((_) {
+          _showSuccessMessage('Event updated successfully');
+        })
+        .catchError((error) {
+          _showErrorMessage('Failed to update event: $error');
+        });
   }
 
   void _deleteEvent(DateTime date, String id) {
     // Delete from Firestore
-    ParentCalendarService.deleteEvent(id).then((_) {
-      _showSuccessMessage('Event deleted successfully');
-    }).catchError((error) {
-      _showErrorMessage('Failed to delete event: $error');
-    });
+    ParentCalendarService.deleteEvent(id)
+        .then((_) {
+          _showSuccessMessage('Event deleted successfully');
+        })
+        .catchError((error) {
+          _showErrorMessage('Failed to delete event: $error');
+        });
   }
 
   /// Show success message
@@ -1865,10 +1982,7 @@ class _EventStyle {
   final Color color;
   final IconData icon;
 
-  const _EventStyle({
-    required this.color,
-    required this.icon,
-  });
+  const _EventStyle({required this.color, required this.icon});
 }
 
 /// NOTE: _generateSampleCalendarEvents() is no longer used.
@@ -1984,124 +2098,135 @@ class _ParentProfilePageState extends State<ParentProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Profile'),
-      ),
+      appBar: AppBar(title: const Text('Profile')),
       body: SafeArea(
         child: SingleChildScrollView(
           // ✅ FIXED OVERFLOW HERE
           child: Column(
             children: [
-            const SizedBox(height: 20),
+              const SizedBox(height: 20),
 
-            /// 👤 PROFILE IMAGE WITH CAMERA ICON
-            Stack(
-              alignment: Alignment.bottomRight,
-              children: [
-                CircleAvatar(
-                  radius: 45,
-                  backgroundColor: Colors.grey.shade300,
-                  backgroundImage: UserSession.profileImagePath.isNotEmpty
-                      ? FileImage(File(UserSession.profileImagePath))
-                      : null,
-                  child: UserSession.profileImagePath.isEmpty
-                      ? const Icon(Icons.person, size: 40, color: Colors.white)
-                      : null,
-                ),
+              /// 👤 PROFILE IMAGE WITH CAMERA ICON
+              Stack(
+                alignment: Alignment.bottomRight,
+                children: [
+                  CircleAvatar(
+                    radius: 45,
+                    backgroundColor: Colors.grey.shade300,
+                    backgroundImage:
+                        UserSession.profileImagePath.isNotEmpty &&
+                            File(UserSession.profileImagePath).existsSync()
+                        ? FileImage(File(UserSession.profileImagePath))
+                        : null,
+                    child:
+                        UserSession.profileImagePath.isEmpty ||
+                            !File(UserSession.profileImagePath).existsSync()
+                        ? const Icon(
+                            Icons.person,
+                            size: 40,
+                            color: Colors.white,
+                          )
+                        : null,
+                  ),
 
-                GestureDetector(
-                  onTap: () => _pickImage(context),
-                  child: Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: Colors.red,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2),
-                    ),
-                    child: const Icon(
-                      Icons.camera_alt,
-                      size: 18,
-                      color: Colors.white,
+                  GestureDetector(
+                    onTap: () => _pickImage(context),
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                      ),
+                      child: const Icon(
+                        Icons.camera_alt,
+                        size: 18,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
+                ],
+              ),
+
+              const SizedBox(height: 10),
+
+              Text(
+                UserSession.name.isEmpty ? "Parent User" : UserSession.name,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
                 ),
-              ],
-            ),
+              ),
 
-            const SizedBox(height: 10),
+              if (UserSession.email.isNotEmpty) Text(UserSession.email),
+              if (UserSession.phone.isNotEmpty) Text(UserSession.phone),
 
-            Text(
-              UserSession.name.isEmpty ? "Parent User" : UserSession.name,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
+              const SizedBox(height: 30),
 
-            Text(UserSession.email),
-            Text(UserSession.phone),
-
-            const SizedBox(height: 30),
-
-            /// ⚙ SETTINGS OPTIONS
-            ListTile(
-              leading: const Icon(Icons.edit),
-              title: const Text("Edit Profile"),
-              onTap: () async {
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const EditProfilePage()),
-                );
-                setState(() {});
-              },
-            ),
-
-            ListTile(
-              leading: const Icon(Icons.notifications),
-              title: const Text("Notification Settings"),
-              onTap: () {
-                Navigator.of(context, rootNavigator: true).push(
-                  MaterialPageRoute(
-                    builder: (_) => const NotificationSettingsPage(),
-                  ),
-                );
-              },
-            ),
-
-            ListTile(
-              leading: const Icon(Icons.lock),
-              title: const Text("Change Password"),
-              onTap: () {
-                Navigator.of(context, rootNavigator: true).push(
-                  MaterialPageRoute(builder: (_) => const ChangePasswordPage()),
-                );
-              },
-            ),
-
-            const SizedBox(height: 40),
-
-            /// 🚪 LOGOUT BUTTON
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  minimumSize: const Size(double.infinity, 50),
-                ),
-                icon: const Icon(Icons.logout),
-                label: const Text("Logout"),
-                onPressed: () {
-                  UserSession.name = "";
-                  UserSession.email = "";
-                  UserSession.role = "";
-                  UserSession.phone = "";
-                  UserSession.profileImagePath = "";
-
-                  Navigator.pushNamedAndRemoveUntil(
+              /// ⚙ SETTINGS OPTIONS
+              ListTile(
+                leading: const Icon(Icons.edit),
+                title: const Text("Edit Profile"),
+                onTap: () async {
+                  await Navigator.push(
                     context,
-                    '/',
-                    (route) => false,
+                    MaterialPageRoute(builder: (_) => const EditProfilePage()),
+                  );
+                  setState(() {});
+                },
+              ),
+
+              ListTile(
+                leading: const Icon(Icons.notifications),
+                title: const Text("Notification Settings"),
+                onTap: () {
+                  Navigator.of(context, rootNavigator: true).push(
+                    MaterialPageRoute(
+                      builder: (_) => const NotificationSettingsPage(),
+                    ),
                   );
                 },
               ),
-            ),
+
+              ListTile(
+                leading: const Icon(Icons.lock),
+                title: const Text("Change Password"),
+                onTap: () {
+                  Navigator.of(context, rootNavigator: true).push(
+                    MaterialPageRoute(
+                      builder: (_) => const ChangePasswordPage(),
+                    ),
+                  );
+                },
+              ),
+
+              const SizedBox(height: 40),
+
+              /// 🚪 LOGOUT BUTTON
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    minimumSize: const Size(double.infinity, 50),
+                  ),
+                  icon: const Icon(Icons.logout),
+                  label: const Text("Logout"),
+                  onPressed: () {
+                    UserSession.name = "";
+                    UserSession.email = "";
+                    UserSession.role = "";
+                    UserSession.phone = "";
+                    UserSession.profileImagePath = "";
+
+                    Navigator.pushNamedAndRemoveUntil(
+                      context,
+                      '/',
+                      (route) => false,
+                    );
+                  },
+                ),
+              ),
             ],
           ),
         ),
@@ -2196,9 +2321,7 @@ class AnnouncementDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Announcement'),
-      ),
+      appBar: AppBar(title: const Text('Announcement')),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -2213,10 +2336,7 @@ class AnnouncementDetailPage extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 8),
-              Text(
-                date,
-                style: TextStyle(color: Colors.grey.shade600),
-              ),
+              Text(date, style: TextStyle(color: Colors.grey.shade600)),
               const SizedBox(height: 16),
               Text(content),
             ],
@@ -2298,9 +2418,7 @@ class ParentActionCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
-            boxShadow: const [
-              BoxShadow(color: Colors.black12, blurRadius: 8),
-            ],
+            boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 8)],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -2314,12 +2432,7 @@ class ParentActionCard extends StatelessWidget {
                 child: Icon(icon, color: color),
               ),
               const SizedBox(height: 12),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
             ],
           ),
         ),

@@ -29,40 +29,80 @@ class AnnouncementViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      List<Map<String, dynamic>> announcementMaps;
+      List<Map<String, dynamic>> announcementMaps = [];
       
       // Use Firestore if enabled
       if (_useFirestore) {
         announcementMaps = await _firestoreService.getPublishedAnnouncements();
-      } else {
-        // Fallback to AnnouncementService
-        final data = await AnnouncementService.getPublishedAnnouncements();
-        _announcements = data;
-        _error = null;
-        _isLoading = false;
-        notifyListeners();
-        return;
       }
       
-      // Convert Firestore maps to AnnouncementModel
-      _announcements = announcementMaps
-          .map((map) => AnnouncementModel.fromJson(map))
-          .toList();
+      // If Firestore returned empty or error, try fallback service
+      if (announcementMaps.isEmpty) {
+        try {
+          final data = await AnnouncementService.getPublishedAnnouncements();
+          _announcements = data;
+          _error = null;
+          _isLoading = false;
+          notifyListeners();
+          return;
+        } catch (fallbackError) {
+          print('Fallback service also failed: $fallbackError');
+        }
+      }
+      
+      // Convert Firestore maps to AnnouncementModel if we have data
+      if (announcementMaps.isNotEmpty) {
+        _announcements = announcementMaps
+            .map((map) => AnnouncementModel.fromJson(map))
+            .toList();
+      } else {
+        // Use sample announcements if all else fails
+        _announcements = _getSampleAnnouncements();
+      }
       _error = null;
     } catch (e) {
       _error = 'Failed to load announcements: $e';
       print('Error loading announcements: $e');
-      // Fallback to sample data
-      try {
-        final data = await AnnouncementService.getPublishedAnnouncements();
-        _announcements = data;
-      } catch (e2) {
-        print('Fallback also failed: $e2');
-      }
+      // Use sample data as final fallback
+      _announcements = _getSampleAnnouncements();
     }
 
     _isLoading = false;
     notifyListeners();
+  }
+
+  /// Get sample announcements
+  List<AnnouncementModel> _getSampleAnnouncements() {
+    return [
+      AnnouncementModel(
+        id: 'ann1',
+        title: 'School Assembly Tomorrow',
+        message: 'Mandatory assembly for all students at 8:00 AM in the main auditorium.',
+        createdBy: 'admin@school.edu.my',
+        date: DateTime.now(),
+      ),
+      AnnouncementModel(
+        id: 'ann2',
+        title: 'New Library Hours',
+        message: 'The library will now be open until 6 PM on weekdays and 4 PM on weekends.',
+        createdBy: 'librarian@school.edu.my',
+        date: DateTime.now().subtract(Duration(hours: 2)),
+      ),
+      AnnouncementModel(
+        id: 'ann3',
+        title: 'Sports Day Registration',
+        message: 'Register for the upcoming sports day. Forms available at the sports office.',
+        createdBy: 'coach@school.edu.my',
+        date: DateTime.now().subtract(Duration(days: 1)),
+      ),
+      AnnouncementModel(
+        id: 'ann4',
+        title: 'Semester Exam Schedule',
+        message: 'Exam schedule for next semester has been posted on the school portal.',
+        createdBy: 'admin@school.edu.my',
+        date: DateTime.now().subtract(Duration(days: 2)),
+      ),
+    ];
   }
 
   /// Refresh announcements

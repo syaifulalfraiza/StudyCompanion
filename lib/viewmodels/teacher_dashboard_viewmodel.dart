@@ -59,9 +59,11 @@ class TeacherDashboardViewModel extends ChangeNotifier {
 
     try {
       if (_useFirestore && !_useSampleData) {
+        print('🧭 Teacher data source: Firestore');
         // Load from Firestore
         await _loadFromFirestore();
       } else {
+        print('🧭 Teacher data source: Sample data');
         // Load from sample data (fallback or explicit)
         _loadTeacherDetailsFromSample();
         _loadClassesFromSample();
@@ -109,6 +111,7 @@ class TeacherDashboardViewModel extends ChangeNotifier {
       // Load assignments
       _allAssignments = await _firestoreService.getAssignmentsForTeacher(_teacherId);
       _filteredAssignments = _allAssignments;
+      print('✅ Assignments loaded from Firestore: ${_allAssignments.length}');
 
       // Load announcements
       _announcements = await _firestoreService.getAnnouncementsForTeacher(_teacherId);
@@ -130,6 +133,7 @@ class TeacherDashboardViewModel extends ChangeNotifier {
       _loadAssignmentsFromSample();
       _loadAnnouncementsFromSample();
       _loadGradesFromSample();
+      print('✅ Assignments loaded from sample data: ${_allAssignments.length}');
     }
   }
 

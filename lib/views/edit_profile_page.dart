@@ -165,13 +165,15 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   CircleAvatar(
                     radius: 45,
                     backgroundColor: Color(UserSession.profileAvatarColor),
-                    backgroundImage: UserSession.profileImagePath.isNotEmpty
+                    backgroundImage: UserSession.profileImagePath.isNotEmpty &&
+                            File(UserSession.profileImagePath).existsSync()
                         ? FileImage(File(UserSession.profileImagePath))
                         : null,
-                    child: UserSession.profileImagePath.isEmpty
+                    child: UserSession.profileImagePath.isEmpty ||
+                            !File(UserSession.profileImagePath).existsSync()
                         ? Text(
                             _getInitials(UserSession.name),
-                            style: TextStyle(
+                            style: const TextStyle(
                               color: Colors.white,
                               fontSize: 22,
                               fontWeight: FontWeight.bold,

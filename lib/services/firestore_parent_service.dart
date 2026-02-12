@@ -202,13 +202,22 @@ class FirestoreParentService {
   /// Get notifications for parent
   Future<List<Map<String, dynamic>>> getParentNotifications(String parentId) async {
     try {
+      print('🛠️  DEBUG: Querying notifications with parentId=$parentId');
       final snapshot = await _firestore
           .collection('notifications')
-          .where('recipientId', isEqualTo: parentId)
-          .where('recipientType', isEqualTo: 'parent')
+          .where('parentId', isEqualTo: parentId)
           .orderBy('createdAt', descending: true)
           .get();
       
+      print('✅ Parent notifications fetched (count=${snapshot.docs.length})');
+      if (snapshot.docs.isEmpty) {
+        print('⚠️  WARNING: No notifications found for parentId=$parentId - checking all notifications...');
+        final allNotifs = await _firestore.collection('notifications').get();
+        print('📊 Total notifications in collection: ${allNotifs.docs.length}');
+        for (var doc in allNotifs.docs.take(3)) {
+          print('   Sample: ${doc.data()}');
+        }
+      }
       return snapshot.docs
           .map((doc) {
             final data = doc.data();
@@ -218,7 +227,7 @@ class FirestoreParentService {
           .toList();
     } catch (e) {
       print('❌ Error getting parent notifications: $e');
-      return [];
+      rethrow;
     }
   }
   
@@ -226,8 +235,7 @@ class FirestoreParentService {
   Stream<List<Map<String, dynamic>>> streamParentNotifications(String parentId) {
     return _firestore
         .collection('notifications')
-        .where('recipientId', isEqualTo: parentId)
-        .where('recipientType', isEqualTo: 'parent')
+        .where('parentId', isEqualTo: parentId)
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map(
@@ -265,8 +273,7 @@ class FirestoreParentService {
     try {
       final snapshot = await _firestore
           .collection('notifications')
-          .where('recipientId', isEqualTo: parentId)
-          .where('recipientType', isEqualTo: 'parent')
+          .where('parentId', isEqualTo: parentId)
           .where('isRead', isEqualTo: false)
           .count()
           .get();

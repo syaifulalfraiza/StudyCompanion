@@ -51,7 +51,7 @@ class ParentDashboardViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      List<ChildModel> children;
+      List<ChildModel> children = [];
       
       // Use Firestore if enabled
       if (_useFirestore) {
@@ -60,20 +60,19 @@ class ParentDashboardViewModel extends ChangeNotifier {
         children = await ParentService.getChildren(parentId: _parentId);
       }
       
-      if (children.isNotEmpty) {
+      // If no children from Firebase/service, use sample data
+      if (children.isEmpty) {
+        _loadSampleChildren();
+      } else {
         _children = children;
         _selectedChild = _children.first;
         await _loadTasksForSelectedChild();
         _error = null;
-      } else {
-        _error = 'No children found';
-        // Fallback to sample data
-        _loadSampleChildren();
       }
     } catch (e) {
       print('Error initializing children: $e');
-      _error = 'Failed to load children: $e';
-      // Attempt to load sample data
+      _error = 'Loading sample data...';
+      // Fallback to sample data
       _loadSampleChildren();
     }
 
@@ -175,7 +174,7 @@ class ParentDashboardViewModel extends ChangeNotifier {
     if (_selectedChild == null) return;
 
     try {
-      List<Task> tasks;
+      List<Task> tasks = [];
       
       // Use Firestore if enabled
       if (_useFirestore) {
@@ -185,11 +184,18 @@ class ParentDashboardViewModel extends ChangeNotifier {
         tasks = await TaskService.getStudentTasks(_selectedChild!.id);
       }
       
-      _selectedChildTasks = tasks;
+      // If no tasks from Firebase/service, use sample data
+      if (tasks.isEmpty) {
+        _selectedChildTasks = SampleTaskData.getTasksForStudent(_selectedChild!.id);
+      } else {
+        _selectedChildTasks = tasks;
+      }
     } catch (e) {
       print('Error loading tasks for child: $e');
+      // Use sample data on error
       _selectedChildTasks = SampleTaskData.getTasksForStudent(_selectedChild!.id);
     }
+    notifyListeners();
   }
 
   /// Refresh children list

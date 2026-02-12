@@ -12,6 +12,7 @@ import 'package:studycompanion_app/viewmodels/login_viewmodel.dart';
 import 'package:studycompanion_app/views/student_classes_page.dart';
 import 'package:studycompanion_app/views/student_calendar_page.dart';
 import 'dart:io';
+import 'package:studycompanion_app/views/admin/firestore_inspector_page.dart';
 
 class StudentDashboard extends StatefulWidget {
   const StudentDashboard({super.key});
@@ -451,6 +452,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
                                   );
                                 },
                                 child: Container(
+                                  width: double.infinity,
                                   padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
                                     color: isRead
@@ -773,6 +775,38 @@ class _StudentDashboardState extends State<StudentDashboard> {
     return '${parts[0].substring(0, 1)}${parts[parts.length - 1].substring(0, 1)}'
         .toUpperCase();
   }
+
+  // Helper method to get notification icon
+  IconData _getNotificationIcon(String type) {
+    switch (type) {
+      case 'task':
+        return Icons.assignment;
+      case 'achievement':
+        return Icons.emoji_events;
+      case 'announcement':
+        return Icons.notifications_active;
+      case 'alert':
+        return Icons.info;
+      default:
+        return Icons.notifications;
+    }
+  }
+
+  // Helper method to get notification color
+  Color _getNotificationColor(String type) {
+    switch (type) {
+      case 'task':
+        return Colors.orange;
+      case 'achievement':
+        return Colors.green;
+      case 'announcement':
+        return Colors.blue;
+      case 'alert':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
 }
 
 // 🔹 Reminder Card
@@ -784,22 +818,96 @@ class ReminderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const primary = Color(0xFF800000);
+    const gradientColor1 = Color(0xFF800000);
+    const gradientColor2 = Color(0xFF5C0000);
+    
     return Container(
       width: 160,
       margin: const EdgeInsets.only(right: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(Icons.notifications, color: primary),
-          const SizedBox(height: 10),
-          Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-          Text(time, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-        ],
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            // Show reminder details in a snackbar
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('$title - $time'),
+                duration: const Duration(seconds: 2),
+                behavior: SnackBarBehavior.floating,
+                action: SnackBarAction(
+                  label: 'View Calendar',
+                  onPressed: () {
+                    // Navigate to calendar view
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const StudentCalendarPage()),
+                    );
+                  },
+                ),
+              ),
+            );
+          },
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [gradientColor1, gradientColor2],
+              ),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: primary.withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.schedule, color: Colors.white, size: 20),
+                ),
+                const SizedBox(height: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          fontSize: 13,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        time,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: Colors.white70,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -832,7 +940,7 @@ class TaskTile extends StatelessWidget {
             ),
           ),
           subtitle: Text(task.dueDate),
-          onTap: () => _showEditTaskDialog(context, viewModel),
+          onTap: () => _showEditTaskDialog(context, viewModel, task),
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -848,9 +956,9 @@ class TaskTile extends StatelessWidget {
               PopupMenuButton<String>(
                 onSelected: (value) {
                   if (value == 'edit') {
-                    _showEditTaskDialog(context, viewModel);
+                    _showEditTaskDialog(context, viewModel, task);
                   } else if (value == 'delete') {
-                    _confirmDelete(context, viewModel);
+                    _confirmDelete(context, viewModel, task);
                   }
                 },
                 itemBuilder: (context) => const [
@@ -868,6 +976,7 @@ class TaskTile extends StatelessWidget {
   void _showEditTaskDialog(
     BuildContext context,
     StudentDashboardViewModel viewModel,
+    dynamic task,
   ) {
     final titleController = TextEditingController(text: task.title);
     final subjectController = TextEditingController(text: task.subject);
@@ -929,6 +1038,7 @@ class TaskTile extends StatelessWidget {
   void _confirmDelete(
     BuildContext context,
     StudentDashboardViewModel viewModel,
+    dynamic task,
   ) {
     showDialog(
       context: context,
@@ -950,36 +1060,5 @@ class TaskTile extends StatelessWidget {
         ],
       ),
     );
-  }
-}
-
-// 🔹 Helper Methods for Notifications
-IconData _getNotificationIcon(String type) {
-  switch (type) {
-    case 'task':
-      return Icons.assignment;
-    case 'achievement':
-      return Icons.emoji_events;
-    case 'announcement':
-      return Icons.notifications_active;
-    case 'alert':
-      return Icons.info;
-    default:
-      return Icons.notifications;
-  }
-}
-
-Color _getNotificationColor(String type) {
-  switch (type) {
-    case 'task':
-      return Colors.orange;
-    case 'achievement':
-      return Colors.green;
-    case 'announcement':
-      return Colors.blue;
-    case 'alert':
-      return Colors.red;
-    default:
-      return Colors.grey;
   }
 }

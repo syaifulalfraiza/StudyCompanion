@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../models/calendar_event_model.dart';
+import '../services/firestore_calendar_event_service.dart';
+import '../core/user_session.dart';
 
 class StudentCalendarPage extends StatefulWidget {
   const StudentCalendarPage({super.key});
@@ -13,51 +16,55 @@ class _StudentCalendarPageState extends State<StudentCalendarPage> {
   DateTime _selectedDate = DateTime.now();
   DateTime _focusedMonth = DateTime.now();
 
-  // Sample events data
-  final Map<DateTime, List<Map<String, dynamic>>> _events = {
-    DateTime(2026, 2, 10): [
-      {'id': 'e1', 'title': 'Math Quiz', 'time': '10:00 AM', 'type': 'exam'},
-      {
-        'id': 'e2',
-        'title': 'Science Lab Report Due',
-        'time': '3:00 PM',
-        'type': 'deadline'
-      },
-    ],
-    DateTime(2026, 2, 11): [
-      {
-        'id': 'e3',
-        'title': 'English Presentation',
-        'time': '9:30 AM',
-        'type': 'event'
-      },
-    ],
-    DateTime(2026, 2, 13): [
-      {
-        'id': 'e4',
-        'title': 'History Essay Due',
-        'time': '11:59 PM',
-        'type': 'deadline'
-      },
-    ],
-    DateTime(2026, 2, 15): [
-      {'id': 'e5', 'title': 'Science Fair', 'time': 'All Day', 'type': 'event'},
-      {
-        'id': 'e6',
-        'title': 'Parent-Teacher Meeting',
-        'time': '2:00 PM',
-        'type': 'event'
-      },
-    ],
-    DateTime(2026, 2, 17): [
-      {
-        'id': 'e7',
-        'title': 'Midterm Exam - Math',
-        'time': '8:00 AM',
-        'type': 'exam'
-      },
-    ],
-  };
+  final FirestoreCalendarEventService _calendarService =
+      FirestoreCalendarEventService();
+  List<CalendarEventModel> _allEvents = [];
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadEvents();
+  }
+
+  Future<void> _loadEvents() async {
+    setState(() => _isLoading = true);
+
+    try {
+      final userId = UserSession.userId;
+      final events = await _calendarService.getEventsForMonth(
+        userId,
+        _focusedMonth.year,
+        _focusedMonth.month,
+        role: UserSession.role,
+      );
+      setState(() {
+        _allEvents = events;
+      });
+    } catch (e) {
+      print('Error loading events: $e');
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Map<DateTime, List<CalendarEventModel>> _groupEventsByDate() {
+    final Map<DateTime, List<CalendarEventModel>> grouped = {};
+
+    for (var event in _allEvents) {
+      final dateKey = DateTime(
+        event.date.year,
+        event.date.month,
+        event.date.day,
+      );
+      if (grouped[dateKey] == null) {
+        grouped[dateKey] = [];
+      }
+      grouped[dateKey]!.add(event);
+    }
+
+    return grouped;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -68,10 +75,7 @@ class _StudentCalendarPageState extends State<StudentCalendarPage> {
         elevation: 0,
         title: const Text(
           'Calendar',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
@@ -112,6 +116,7 @@ class _StudentCalendarPageState extends State<StudentCalendarPage> {
                             _focusedMonth.month - 1,
                           );
                         });
+                        _loadEvents();
                       },
                     ),
                     Text(
@@ -123,7 +128,10 @@ class _StudentCalendarPageState extends State<StudentCalendarPage> {
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.chevron_right, color: Colors.white),
+                      icon: const Icon(
+                        Icons.chevron_right,
+                        color: Colors.white,
+                      ),
                       onPressed: () {
                         setState(() {
                           _focusedMonth = DateTime(
@@ -131,6 +139,7 @@ class _StudentCalendarPageState extends State<StudentCalendarPage> {
                             _focusedMonth.month + 1,
                           );
                         });
+                        _loadEvents();
                       },
                     ),
                   ],
@@ -143,57 +152,59 @@ class _StudentCalendarPageState extends State<StudentCalendarPage> {
 
           // Events List
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      DateFormat('EEEE, MMMM d').format(_selectedDate),
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    TextButton.icon(
-                      onPressed: () {
-                        _showAddOrEditEventDialog(date: _selectedDate);
-                      },
-                      icon: const Icon(Icons.add),
-                      label: const Text('Add'),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                ..._getEventsForDate(_selectedDate).map((event) {
-                  return _buildEventCard(event, _selectedDate);
-                }).toList(),
-                if (_getEventsForDate(_selectedDate).isEmpty)
-                  Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(32),
-                      child: Column(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : ListView(
+                    padding: const EdgeInsets.all(16),
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Icon(
-                            Icons.event_busy,
-                            size: 64,
-                            color: Colors.grey[400],
-                          ),
-                          const SizedBox(height: 16),
                           Text(
-                            'No events scheduled',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.grey[600],
+                            DateFormat('EEEE, MMMM d').format(_selectedDate),
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
                             ),
+                          ),
+                          TextButton.icon(
+                            onPressed: () {
+                              _showAddOrEditEventDialog(date: _selectedDate);
+                            },
+                            icon: const Icon(Icons.add),
+                            label: const Text('Add'),
                           ),
                         ],
                       ),
-                    ),
+                      const SizedBox(height: 12),
+                      ..._getEventsForDate(_selectedDate).map((event) {
+                        return _buildEventCard(event, _selectedDate);
+                      }),
+                      if (_getEventsForDate(_selectedDate).isEmpty)
+                        Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(32),
+                            child: Column(
+                              children: [
+                                Icon(
+                                  Icons.event_busy,
+                                  size: 64,
+                                  color: Colors.grey[400],
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'No events scheduled',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
-              ],
-            ),
           ),
         ],
       ),
@@ -201,9 +212,18 @@ class _StudentCalendarPageState extends State<StudentCalendarPage> {
   }
 
   Widget _buildCalendarGrid() {
-    final daysInMonth = DateTime(_focusedMonth.year, _focusedMonth.month + 1, 0).day;
-    final firstDayOfMonth = DateTime(_focusedMonth.year, _focusedMonth.month, 1);
+    final daysInMonth = DateTime(
+      _focusedMonth.year,
+      _focusedMonth.month + 1,
+      0,
+    ).day;
+    final firstDayOfMonth = DateTime(
+      _focusedMonth.year,
+      _focusedMonth.month,
+      1,
+    );
     final startingWeekday = firstDayOfMonth.weekday % 7;
+    final groupedEvents = _groupEventsByDate();
 
     return Column(
       children: [
@@ -211,18 +231,20 @@ class _StudentCalendarPageState extends State<StudentCalendarPage> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: ['S', 'M', 'T', 'W', 'T', 'F', 'S']
-              .map((day) => SizedBox(
-                    width: 40,
-                    child: Center(
-                      child: Text(
-                        day,
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontWeight: FontWeight.bold,
-                        ),
+              .map(
+                (day) => SizedBox(
+                  width: 40,
+                  child: Center(
+                    child: Text(
+                      day,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                  ))
+                  ),
+                ),
+              )
               .toList(),
         ),
         const SizedBox(height: 8),
@@ -242,10 +264,16 @@ class _StudentCalendarPageState extends State<StudentCalendarPage> {
               return const SizedBox();
             }
 
-            final date = DateTime(_focusedMonth.year, _focusedMonth.month, dayNumber);
+            final date = DateTime(
+              _focusedMonth.year,
+              _focusedMonth.month,
+              dayNumber,
+            );
             final isSelected = _isSameDay(date, _selectedDate);
             final isToday = _isSameDay(date, DateTime.now());
-            final hasEvents = _events.containsKey(DateTime(date.year, date.month, date.day));
+            final hasEvents = groupedEvents.containsKey(
+              DateTime(date.year, date.month, date.day),
+            );
 
             return GestureDetector(
               onTap: () {
@@ -258,8 +286,8 @@ class _StudentCalendarPageState extends State<StudentCalendarPage> {
                   color: isSelected
                       ? Colors.white
                       : isToday
-                          ? Colors.white24
-                          : Colors.transparent,
+                      ? Colors.white24
+                      : Colors.transparent,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Stack(
@@ -269,7 +297,9 @@ class _StudentCalendarPageState extends State<StudentCalendarPage> {
                         dayNumber.toString(),
                         style: TextStyle(
                           color: isSelected ? primary : Colors.white,
-                          fontWeight: isSelected || isToday ? FontWeight.bold : FontWeight.normal,
+                          fontWeight: isSelected || isToday
+                              ? FontWeight.bold
+                              : FontWeight.normal,
                         ),
                       ),
                     ),
@@ -299,20 +329,28 @@ class _StudentCalendarPageState extends State<StudentCalendarPage> {
     );
   }
 
-  Widget _buildEventCard(Map<String, dynamic> event, DateTime date) {
+  Widget _buildEventCard(CalendarEventModel event, DateTime date) {
     Color eventColor;
     IconData eventIcon;
 
-    switch (event['type']) {
-      case 'exam':
+    switch (event.type) {
+      case EventType.exam:
         eventColor = Colors.red;
         eventIcon = Icons.quiz;
         break;
-      case 'deadline':
+      case EventType.deadline:
         eventColor = Colors.orange;
         eventIcon = Icons.assignment_late;
         break;
-      case 'event':
+      case EventType.meeting:
+        eventColor = Colors.blue;
+        eventIcon = Icons.people;
+        break;
+      case EventType.holiday:
+        eventColor = Colors.purple;
+        eventIcon = Icons.beach_access;
+        break;
+      case EventType.event:
         eventColor = Colors.blue;
         eventIcon = Icons.event;
         break;
@@ -357,19 +395,34 @@ class _StudentCalendarPageState extends State<StudentCalendarPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        event['title'],
+                        event.title,
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       const SizedBox(height: 4),
+                      if (event.description.isNotEmpty)
+                        Text(
+                          event.description,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey[700],
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      const SizedBox(height: 4),
                       Row(
                         children: [
-                          Icon(Icons.access_time, size: 14, color: Colors.grey[600]),
+                          Icon(
+                            Icons.access_time,
+                            size: 14,
+                            color: Colors.grey[600],
+                          ),
                           const SizedBox(width: 4),
                           Text(
-                            event['time'],
+                            DateFormat('h:mm a').format(event.date),
                             style: TextStyle(
                               fontSize: 13,
                               color: Colors.grey[600],
@@ -388,9 +441,10 @@ class _StudentCalendarPageState extends State<StudentCalendarPage> {
     );
   }
 
-  List<Map<String, dynamic>> _getEventsForDate(DateTime date) {
+  List<CalendarEventModel> _getEventsForDate(DateTime date) {
     final key = DateTime(date.year, date.month, date.day);
-    return _events[key] ?? [];
+    final groupedEvents = _groupEventsByDate();
+    return groupedEvents[key] ?? [];
   }
 
   bool _isSameDay(DateTime a, DateTime b) {
@@ -399,94 +453,203 @@ class _StudentCalendarPageState extends State<StudentCalendarPage> {
 
   void _showAddOrEditEventDialog({
     required DateTime date,
-    Map<String, dynamic>? event,
+    CalendarEventModel? event,
   }) {
-    final titleController = TextEditingController(text: event?['title'] ?? '');
-    final timeController = TextEditingController(text: event?['time'] ?? '');
-    String selectedType = event?['type'] ?? 'event';
+    final titleController = TextEditingController(text: event?.title ?? '');
+    final descriptionController = TextEditingController(
+      text: event?.description ?? '',
+    );
+    EventType selectedType = event?.type ?? EventType.event;
+    DateTime selectedDateTime = event?.date ?? date;
+    TimeOfDay selectedTime = TimeOfDay.fromDateTime(
+      event?.date ?? DateTime.now(),
+    );
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(event == null ? 'Add Event' : 'Edit Event'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: titleController,
-                decoration: const InputDecoration(labelText: 'Title'),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: timeController,
-                decoration: const InputDecoration(labelText: 'Time'),
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                value: selectedType,
-                items: const [
-                  DropdownMenuItem(value: 'event', child: Text('Event')),
-                  DropdownMenuItem(value: 'exam', child: Text('Exam')),
-                  DropdownMenuItem(value: 'deadline', child: Text('Deadline')),
-                ],
-                onChanged: (value) {
-                  if (value != null) {
-                    selectedType = value;
-                  }
-                },
-                decoration: const InputDecoration(labelText: 'Type'),
-              ),
-            ],
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text(event == null ? 'Add Event' : 'Edit Event'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: titleController,
+                  decoration: const InputDecoration(
+                    labelText: 'Title',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: descriptionController,
+                  decoration: const InputDecoration(
+                    labelText: 'Description',
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 3,
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<EventType>(
+                  value: selectedType,
+                  decoration: const InputDecoration(
+                    labelText: 'Event Type',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: EventType.values.map((type) {
+                    return DropdownMenuItem(
+                      value: type,
+                      child: Text(
+                        type.toString().split('.').last.toUpperCase(),
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setDialogState(() {
+                      selectedType = value!;
+                    });
+                  },
+                ),
+                const SizedBox(height: 16),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Date'),
+                  subtitle: Text(
+                    DateFormat('MMM dd, yyyy').format(selectedDateTime),
+                  ),
+                  trailing: const Icon(Icons.calendar_today),
+                  onTap: () async {
+                    final pickedDate = await showDatePicker(
+                      context: context,
+                      initialDate: selectedDateTime,
+                      firstDate: DateTime.now(),
+                      lastDate: DateTime.now().add(const Duration(days: 365)),
+                    );
+                    if (pickedDate != null) {
+                      setDialogState(() {
+                        selectedDateTime = pickedDate;
+                      });
+                    }
+                  },
+                ),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Time'),
+                  subtitle: Text(selectedTime.format(context)),
+                  trailing: const Icon(Icons.access_time),
+                  onTap: () async {
+                    final pickedTime = await showTimePicker(
+                      context: context,
+                      initialTime: selectedTime,
+                    );
+                    if (pickedTime != null) {
+                      setDialogState(() {
+                        selectedTime = pickedTime;
+                      });
+                    }
+                  },
+                ),
+              ],
+            ),
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final title = titleController.text.trim();
-              final time = timeController.text.trim();
-              if (title.isEmpty || time.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Please fill in all fields.')),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (titleController.text.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Please enter a title')),
+                  );
+                  return;
+                }
+
+                final eventDateTime = DateTime(
+                  selectedDateTime.year,
+                  selectedDateTime.month,
+                  selectedDateTime.day,
+                  selectedTime.hour,
+                  selectedTime.minute,
                 );
-                return;
-              }
-              final eventData = {
-                'id': event?['id'] ?? DateTime.now().microsecondsSinceEpoch.toString(),
-                'title': title,
-                'time': time,
-                'type': selectedType,
-              };
-              if (event == null) {
-                _addEvent(date, eventData);
-              } else {
-                _updateEvent(date, eventData);
-              }
-              Navigator.pop(context);
-            },
-            child: Text(event == null ? 'Add' : 'Save'),
-          ),
-        ],
+
+                final newEvent = CalendarEventModel(
+                  id:
+                      event?.id ??
+                      DateTime.now().millisecondsSinceEpoch.toString(),
+                  title: titleController.text,
+                  description: descriptionController.text,
+                  date: eventDateTime,
+                  type: selectedType,
+                  userId: UserSession.userId,
+                  visibilityScope: 'private',
+                  audienceUserIds: [UserSession.userId],
+                  createdByUserId: UserSession.userId,
+                  createdByRole: UserSession.role,
+                  createdAt: event?.createdAt ?? DateTime.now(),
+                  updatedAt: event != null ? DateTime.now() : null,
+                );
+
+                try {
+                  if (event == null) {
+                    await _calendarService.createEvent(newEvent);
+                  } else {
+                    await _calendarService.updateEvent(newEvent);
+                  }
+                  Navigator.pop(context);
+                  _loadEvents();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        event == null
+                            ? 'Event created successfully'
+                            : 'Event updated successfully',
+                      ),
+                    ),
+                  );
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error saving event: $e')),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primary,
+                foregroundColor: Colors.white,
+              ),
+              child: Text(event == null ? 'Add' : 'Save'),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  void _showEventDetails(Map<String, dynamic> event, DateTime date) {
+  void _showEventDetails(CalendarEventModel event, DateTime date) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(event['title']),
+        title: Text(event.title),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Time: ${event['time']}'),
+            if (event.description.isNotEmpty) ...[
+              const Text(
+                'Description:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              Text(event.description),
+              const SizedBox(height: 8),
+            ],
+            Text('Time: ${DateFormat('h:mm a').format(event.date)}'),
             const SizedBox(height: 8),
-            Text('Type: ${event['type']}'),
+            Text(
+              'Type: ${event.type.toString().split('.').last.toUpperCase()}',
+            ),
           ],
         ),
         actions: [
@@ -496,15 +659,35 @@ class _StudentCalendarPageState extends State<StudentCalendarPage> {
           ),
           TextButton(
             onPressed: () {
+              if (!_canModifyEvent(event)) {
+                Navigator.pop(context);
+                _showPermissionDenied();
+                return;
+              }
               Navigator.pop(context);
               _showAddOrEditEventDialog(date: date, event: event);
             },
             child: const Text('Edit'),
           ),
           TextButton(
-            onPressed: () {
-              _deleteEvent(date, event['id']);
-              Navigator.pop(context);
+            onPressed: () async {
+              if (!_canModifyEvent(event)) {
+                Navigator.pop(context);
+                _showPermissionDenied();
+                return;
+              }
+              try {
+                await _calendarService.deleteEvent(event.id);
+                Navigator.pop(context);
+                _loadEvents();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Event deleted successfully')),
+                );
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Error deleting event: $e')),
+                );
+              }
             },
             child: const Text('Delete', style: TextStyle(color: Colors.red)),
           ),
@@ -513,34 +696,23 @@ class _StudentCalendarPageState extends State<StudentCalendarPage> {
     );
   }
 
-  void _addEvent(DateTime date, Map<String, dynamic> event) {
-    final key = DateTime(date.year, date.month, date.day);
-    setState(() {
-      _events.putIfAbsent(key, () => []);
-      _events[key]!.add(event);
-    });
+  bool _canModifyEvent(CalendarEventModel event) {
+    final userId = UserSession.userId;
+    if (userId.isEmpty) return false;
+    if (event.visibilityScope != 'private') return false;
+
+    if (event.createdByUserId == userId) return true;
+    if (event.userId == userId) return true;
+    if (event.audienceUserIds.contains(userId)) return true;
+
+    return false;
   }
 
-  void _updateEvent(DateTime date, Map<String, dynamic> updatedEvent) {
-    final key = DateTime(date.year, date.month, date.day);
-    final list = _events[key];
-    if (list == null) return;
-    final index = list.indexWhere((e) => e['id'] == updatedEvent['id']);
-    if (index == -1) return;
-    setState(() {
-      list[index] = updatedEvent;
-    });
-  }
-
-  void _deleteEvent(DateTime date, String id) {
-    final key = DateTime(date.year, date.month, date.day);
-    final list = _events[key];
-    if (list == null) return;
-    setState(() {
-      list.removeWhere((e) => e['id'] == id);
-      if (list.isEmpty) {
-        _events.remove(key);
-      }
-    });
+  void _showPermissionDenied() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('You can only edit or delete your private reminders.'),
+      ),
+    );
   }
 }

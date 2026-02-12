@@ -67,7 +67,7 @@ class FirestoreTeacherService {
       return classes;
     } catch (e) {
       print('❌ Error getting classes: $e');
-      return [];
+      rethrow; // Rethrow to allow viewmodel to handle error and use sample data
     }
   }
   
@@ -116,7 +116,7 @@ class FirestoreTeacherService {
       return assignments;
     } catch (e) {
       print('❌ Error getting assignments: $e');
-      return [];
+      rethrow; // Rethrow to allow viewmodel to handle error and use sample data
     }
   }
   
@@ -138,7 +138,7 @@ class FirestoreTeacherService {
       return assignments;
     } catch (e) {
       print('❌ Error getting class assignments: $e');
-      return [];
+      rethrow; // Rethrow to allow viewmodel to handle error and use sample data
     }
   }
   
@@ -249,7 +249,7 @@ class FirestoreTeacherService {
       return grades;
     } catch (e) {
       print('❌ Error getting grades: $e');
-      return [];
+      rethrow; // Rethrow to allow viewmodel to handle error and use sample data
     }
   }
   
@@ -334,6 +334,7 @@ class FirestoreTeacherService {
       final snapshot = await _firestore
         .collection('announcements')
         .where('createdBy', isEqualTo: teacherId)
+        .orderBy('date', descending: true)
         .get();
       
       var announcements = snapshot.docs
@@ -353,7 +354,7 @@ class FirestoreTeacherService {
       return announcements;
     } catch (e) {
       print('❌ Error getting announcements: $e');
-      return [];
+      rethrow; // Rethrow to allow viewmodel to handle error and use sample data
     }
   }
   
@@ -386,7 +387,7 @@ class FirestoreTeacherService {
       return announcements;
     } catch (e) {
       print('❌ Error getting published announcements: $e');
-      return [];
+      rethrow; // Rethrow to allow viewmodel to handle error and use sample data
     }
   }
   

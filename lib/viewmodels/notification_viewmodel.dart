@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:studycompanion_app/models/notification_model.dart';
 import 'package:studycompanion_app/services/notification_service.dart';
 import 'package:studycompanion_app/services/firestore_student_service.dart';
+import 'package:studycompanion_app/services/firestore_parent_service.dart';
 
 class NotificationViewModel extends ChangeNotifier {
   List<NotificationModel> _notifications = [];
@@ -12,7 +13,8 @@ class NotificationViewModel extends ChangeNotifier {
   bool _isStudent = true;
   bool _useFirestore = true; // Use Firestore by default
   
-  final FirestoreStudentService _firestoreService = FirestoreStudentService();
+  final FirestoreStudentService _firestoreStudentService = FirestoreStudentService();
+  final FirestoreParentService _firestoreParentService = FirestoreParentService();
 
   NotificationViewModel({String userId = 's1', bool isStudent = true}) {
     _userId = userId;
@@ -32,62 +34,114 @@ class NotificationViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      List<Map<String, dynamic>> notificationMaps;
+      List<Map<String, dynamic>> notificationMaps = [];
       
       // Use Firestore if enabled
-      if (_useFirestore && _isStudent) {
-        notificationMaps = await _firestoreService.getStudentNotifications(_userId);
-      } else {
-        // Fallback to NotificationService
+      if (_useFirestore) {
+        final sourceLabel = _isStudent ? 'student' : 'parent';
+        print('🧭 Notifications source: Firestore ($sourceLabel) for user=$_userId');
+        try {
+          notificationMaps = _isStudent
+          ? await _firestoreStudentService.getStudentNotifications(_userId)
+          : await _firestoreParentService.getParentNotifications(_userId);
+        } catch (firestoreError) {
+          print('🧭 Firestore error (will try fallback): $firestoreError');
+        }
+      }
+      
+      // If Firestore returned empty or error, try fallback service
+      if (notificationMaps.isEmpty) {
+        try {
+          final previouslyReadIds = _notifications
+              .where((n) => n.isRead)
+              .map((n) => n.id)
+              .toSet();
+            print('🧭 Notifications source: fallback service for user=$_userId');
+            final data = _isStudent
+              ? await NotificationService.getStudentNotifications(_userId)
+              : await NotificationService.getParentNotifications(_userId);
+
+          _notifications = data
+              .map((n) => previouslyReadIds.contains(n.id)
+                  ? n.copyWith(isRead: true)
+                  : n)
+              .toList();
+          _unreadCount = _notifications.where((n) => !n.isRead).length;
+          _error = null;
+          _isLoading = false;
+          notifyListeners();
+          return;
+        } catch (fallbackError) {
+          print('Fallback service also failed: $fallbackError');
+        }
+      }
+
+      // Convert Firestore maps to NotificationModel if we have data
+      if (notificationMaps.isNotEmpty) {
         final previouslyReadIds = _notifications
             .where((n) => n.isRead)
             .map((n) => n.id)
             .toSet();
-        final data = _isStudent
-            ? await NotificationService.getStudentNotifications(_userId)
-            : await NotificationService.getParentNotifications(_userId);
-
-        _notifications = data
-            .map((n) => previouslyReadIds.contains(n.id)
-                ? n.copyWith(isRead: true)
-                : n)
+        
+        _notifications = notificationMaps
+            .map((map) => NotificationModel.fromJson(
+                {...map, 'isRead': previouslyReadIds.contains(map['id'])}))
             .toList();
-        _unreadCount = _notifications.where((n) => !n.isRead).length;
-        _error = null;
-        _isLoading = false;
-        notifyListeners();
-        return;
+      } else {
+        // Use sample notifications if all else fails
+        _notifications = _getSampleNotifications();
       }
       
-      // Convert Firestore maps to NotificationModel
-      final previouslyReadIds = _notifications
-          .where((n) => n.isRead)
-          .map((n) => n.id)
-          .toSet();
-      
-      _notifications = notificationMaps
-          .map((map) => NotificationModel.fromJson(
-              {...map, 'isRead': previouslyReadIds.contains(map['id'])}))
-          .toList();
       _unreadCount = _notifications.where((n) => !n.isRead).length;
       _error = null;
     } catch (e) {
       _error = 'Failed to load notifications: $e';
       print('Error loading notifications: $e');
-      // Fallback to sample data
-      try {
-        final data = _isStudent
-            ? await NotificationService.getStudentNotifications(_userId)
-            : await NotificationService.getParentNotifications(_userId);
-        _notifications = data;
-        _unreadCount = _notifications.where((n) => !n.isRead).length;
-      } catch (e2) {
-        print('Fallback also failed: $e2');
-      }
+      // Use sample data as final fallback
+      _notifications = _getSampleNotifications();
+      _unreadCount = _notifications.where((n) => !n.isRead).length;
     }
 
     _isLoading = false;
     notifyListeners();
+  }
+
+  /// Get sample notifications
+  List<NotificationModel> _getSampleNotifications() {
+    return [
+      NotificationModel(
+        id: 'notif1',
+        title: 'Assignment Submitted',
+        body: 'Your Physics assignment has been submitted successfully.',
+        notificationType: 'assignment',
+        isRead: false,
+        createdAt: DateTime.now(),
+      ),
+      NotificationModel(
+        id: 'notif2',
+        title: 'Grade Posted',
+        body: 'Your Mathematics test has been graded. Check results now.',
+        notificationType: 'grade',
+        isRead: false,
+        createdAt: DateTime.now().subtract(Duration(hours: 1)),
+      ),
+      NotificationModel(
+        id: 'notif3',
+        title: 'Class Reminder',
+        body: 'Chemistry class starts in 30 minutes. Be on time!',
+        notificationType: 'reminder',
+        isRead: false,
+        createdAt: DateTime.now().subtract(Duration(hours: 2)),
+      ),
+      NotificationModel(
+        id: 'notif4',
+        title: 'New Homework',
+        body: 'Mr. Ahmed has posted new homework for English class.',
+        notificationType: 'homework',
+        isRead: true,
+        createdAt: DateTime.now().subtract(Duration(hours: 4)),
+      ),
+    ];
   }
 
   /// Refresh notifications
@@ -132,8 +186,12 @@ class NotificationViewModel extends ChangeNotifier {
       }
       
       // Update in Firestore if using Firestore mode
-      if (_useFirestore && _isStudent) {
-        await _firestoreService.markNotificationAsRead(notificationId);
+      if (_useFirestore) {
+        if (_isStudent) {
+          await _firestoreStudentService.markNotificationAsRead(notificationId);
+        } else {
+          await _firestoreParentService.markNotificationAsRead(notificationId);
+        }
       } else {
         // Fallback to NotificationService
         await NotificationService.markNotificationAsRead(notificationId);
